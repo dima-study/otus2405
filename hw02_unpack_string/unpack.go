@@ -49,7 +49,7 @@ func Unpack(str string) (string, error) {
 
 		// Current symbol sym should be escaped.
 		if escaped {
-			if dgt != -1 {
+			if dgt != -1 { //nolint:gocritic
 				// It is escaped digit.
 				symToUnpack = sym
 				dgt = -1
