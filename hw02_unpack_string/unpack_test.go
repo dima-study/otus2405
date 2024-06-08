@@ -60,12 +60,26 @@ func TestUnpack(t *testing.T) {
 }
 
 func TestUnpackInvalidString(t *testing.T) {
-	invalidStrings := []string{"3abc", "45", "aaa10b", "00", "1a", "1", `\`, `\a`}
-	for _, tc := range invalidStrings {
+	invalid := []struct {
+		s   string
+		err error
+	}{
+		{"3abc", ErrNothingToRepeat},
+		{"45", ErrNothingToRepeat},
+		{"aaa10b", ErrNothingToRepeat},
+		{"00", ErrNothingToRepeat},
+		{"1a", ErrNothingToRepeat},
+		{"1", ErrNothingToRepeat},
+
+		{`\`, ErrNothingToEscape},
+
+		{`\a`, ErrInvalidEscapeSymbol},
+	}
+	for _, tc := range invalid {
 		tc := tc
-		t.Run(tc, func(t *testing.T) {
-			_, err := Unpack(tc)
-			require.Truef(t, errors.Is(err, ErrInvalidString), "actual error %q", err)
+		t.Run(tc.s, func(t *testing.T) {
+			_, err := Unpack(tc.s)
+			require.Truef(t, errors.Is(err, tc.err), "actual error %q", err)
 		})
 	}
 }

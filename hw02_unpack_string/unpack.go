@@ -2,10 +2,15 @@ package hw02unpackstring
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
-var ErrInvalidString = errors.New("invalid string")
+var (
+	ErrInvalidEscapeSymbol = errors.New("invalid symbol to escape")
+	ErrNothingToRepeat     = errors.New("nothing to repeat")
+	ErrNothingToEscape     = errors.New("nothing to escape")
+)
 
 func Unpack(str string) (string, error) {
 	output := strings.Builder{}
@@ -25,8 +30,9 @@ func Unpack(str string) (string, error) {
 	dgt := int(-1)                // -1 means current symbol is not a digit.
 
 	// For each symbol sym in str.
+	var i int
 	var sym rune
-	for _, sym = range str {
+	for i, sym = range str {
 		if nextToEscape {
 			escaped = true
 			nextToEscape = false
@@ -52,7 +58,7 @@ func Unpack(str string) (string, error) {
 				symToUnpack = sym
 			} else {
 				// Only digit or backslash(\) could be escaped.
-				return "", ErrInvalidString
+				return "", fmt.Errorf("%w: symbol %q at position %d", ErrInvalidEscapeSymbol, sym, i)
 			}
 
 			// Now escaped and ready-to-unpack symbol is in symToUnpack.
@@ -80,7 +86,7 @@ func Unpack(str string) (string, error) {
 		// If symToUnpack is in startReadState: digit has been read, but no previous symbol read.
 		// Return error.
 		if symToUnpack == startReadState {
-			return "", ErrInvalidString
+			return "", fmt.Errorf("%w: at position %d", ErrNothingToRepeat, i)
 		}
 
 		// Okay, unpack symbol to output
@@ -98,7 +104,7 @@ func Unpack(str string) (string, error) {
 	//   - otherwise return error.
 	if symToUnpack != startReadState {
 		if nextToEscape {
-			return "", ErrInvalidString
+			return "", fmt.Errorf("%w: at position %d", ErrNothingToEscape, i)
 		}
 		output.WriteRune(sym)
 	}
