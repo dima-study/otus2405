@@ -49,16 +49,20 @@ func Unpack(str string) (string, error) {
 
 		// Current symbol sym should be escaped.
 		if escaped {
-			if dgt != -1 { //nolint:gocritic
+			switch {
+			case dgt != -1:
 				// It is escaped digit.
 				symToUnpack = sym
 				dgt = -1
-			} else if sym == '\\' {
+			case sym == '\\':
 				// It is escaped backslash.
 				symToUnpack = sym
-			} else {
+			default:
 				// Only digit or backslash(\) could be escaped.
-				return "", fmt.Errorf("%w: symbol %q at position %d", ErrInvalidEscapeSymbol, sym, i)
+				return "", fmt.Errorf(
+					"%w: symbol %q at position %d",
+					ErrInvalidEscapeSymbol, sym, i,
+				)
 			}
 
 			// Now escaped and ready-to-unpack symbol is in symToUnpack.
