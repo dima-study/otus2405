@@ -38,13 +38,11 @@ func Unpack(str string) (string, error) {
 			nextToEscape = false
 		}
 
-		// Symbol is ASCII: possible escape or digit.
-		if sym < 256 {
-			if sym == '\\' {
-				nextToEscape = true
-			} else {
-				dgt = digit(byte(sym))
-			}
+		// Check if escape or digit.
+		if sym == '\\' {
+			nextToEscape = true
+		} else {
+			dgt = digit(sym)
 		}
 
 		// Current symbol sym should be escaped.
@@ -116,11 +114,11 @@ func Unpack(str string) (string, error) {
 	return output.String(), nil
 }
 
-// digit returns int digit (0-9) from provided  ASCII char c.
+// digit returns int digit (0-9) from provided rune r.
 // Returns -1 if it is not a digit.
-func digit(c byte) int {
-	if '0' <= c && c <= '9' {
-		return int(c - '0')
+func digit(r rune) int {
+	if '0' <= r && r <= '9' {
+		return int(r - '0')
 	}
 
 	return -1

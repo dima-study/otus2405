@@ -87,14 +87,14 @@ func TestUnpackInvalidString(t *testing.T) {
 func Test_digit(t *testing.T) {
 	tests := []struct {
 		name string
-		c    byte
+		c    rune
 		want int
 	}{
 		{"0=0", '0', 0},
 		{"4=4", '4', 4},
 		{"9=9", '9', 9},
 		{"a=-1", 'a', -1},
-		{"\\0=-1", byte(0), -1},
+		{"\\0=-1", 0, -1},
 		{"\\n=-1", '\n', -1},
 		{"\\\\=-1", '\\', -1},
 	}
