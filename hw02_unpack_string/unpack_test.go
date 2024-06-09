@@ -2,6 +2,8 @@ package hw02unpackstring
 
 import (
 	"errors"
+	"math"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require" //nolint:depguard
@@ -103,5 +105,41 @@ func Test_digit(t *testing.T) {
 			got := digit(tt.c)
 			require.Equal(t, tt.want, got)
 		})
+	}
+}
+
+func BenchmarkRepeatStrings(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		b := rune(b.N % math.MaxInt32)
+		bldr := strings.Builder{}
+		bldr.Grow(10)
+		bldr.WriteString(strings.Repeat(string(b), 10))
+		_ = bldr.String()
+	}
+}
+
+func BenchmarkRepeatLoop(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		b := rune(b.N % math.MaxInt32)
+		bldr := strings.Builder{}
+		bldr.Grow(10)
+		for range 10 {
+			bldr.WriteRune(b)
+		}
+		_ = bldr.String()
+	}
+}
+
+func BenchmarkRepeatLoopMake(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		b := rune(b.N % math.MaxInt32)
+		s := make([]rune, 10)
+		for i := range 10 {
+			s[i] = b
+		}
+		bldr := strings.Builder{}
+		bldr.Grow(10)
+		bldr.WriteString(string(s))
+		_ = bldr.String()
 	}
 }
