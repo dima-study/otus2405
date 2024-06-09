@@ -92,9 +92,7 @@ func Unpack(str string) (string, error) {
 		}
 
 		// Okay, unpack symbol to output
-		for range dgt {
-			output.WriteRune(symToUnpack)
-		}
+		output.WriteString(strings.Repeat(string(symToUnpack), dgt))
 
 		// Reset reads.
 		symToUnpack = startReadState
