@@ -17,6 +17,7 @@ func Top10(s string) []string {
 		wordFreq[w]++
 	}
 
+	// Calculate frequency for each word
 	uniqWords := make([]string, 0, len(wordFreq))
 	for w := range wordFreq {
 		uniqWords = append(uniqWords, w)
@@ -32,5 +33,6 @@ func Top10(s string) []string {
 		return cmp.Compare(a, b)
 	})
 
+	// Return up to 10 words
 	return uniqWords[:min(10, len(uniqWords))]
 }
