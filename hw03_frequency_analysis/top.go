@@ -14,6 +14,8 @@ func Top10(s string) []string {
 
 	// wordFreq (word:freq) holds frequency for each unique word.
 	wordFreq := map[string]int{}
+
+	// Calculate frequency for each word
 	for _, w := range words {
 		w = cleanWord(strings.ToLower(w))
 		if w != "" {
@@ -21,7 +23,7 @@ func Top10(s string) []string {
 		}
 	}
 
-	// Calculate frequency for each word
+	// Store unique words
 	uniqWords := make([]string, 0, len(wordFreq))
 	for w := range wordFreq {
 		uniqWords = append(uniqWords, w)
