@@ -2,6 +2,7 @@ package hw03frequencyanalysis
 
 import (
 	"cmp"
+	"regexp"
 	"slices"
 	"strings"
 )
@@ -14,7 +15,10 @@ func Top10(s string) []string {
 	// wordFreq (word:freq) holds frequency for each unique word.
 	wordFreq := map[string]int{}
 	for _, w := range words {
-		wordFreq[w]++
+		w = cleanWord(strings.ToLower(w))
+		if w != "" {
+			wordFreq[w]++
+		}
 	}
 
 	// Calculate frequency for each word
@@ -35,4 +39,38 @@ func Top10(s string) []string {
 
 	// Return up to 10 words
 	return uniqWords[:min(10, len(uniqWords))]
+}
+
+var (
+	punctMarkRe  = regexp.MustCompile("^[,.?!]|[,.?!]$")
+	quote1MarkRe = regexp.MustCompile("^'(.+)'$")
+	quote2MarkRe = regexp.MustCompile("^`(.+)`$")
+	quote3MarkRe = regexp.MustCompile("^\"(.+)\"$")
+)
+
+// cleanWord removes punctuation marks at the start and the end of the word.
+// Returns clear word. Special case: "-" is not a word, empty string will be returned.
+func cleanWord(w string) string {
+	if w == "" || w == "-" {
+		return ""
+	}
+
+	wb := []byte(w)
+
+	for _, cond := range []struct {
+		re      *regexp.Regexp
+		replace []byte
+	}{
+		{punctMarkRe, []byte{}},
+		{quote1MarkRe, []byte("$1")},
+		{quote2MarkRe, []byte("$1")},
+		{quote3MarkRe, []byte("$1")},
+	} {
+		if cond.re.Match(wb) {
+			wb = cond.re.ReplaceAll(wb, cond.replace)
+			return string(wb)
+		}
+	}
+
+	return w
 }
