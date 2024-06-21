@@ -59,7 +59,7 @@ func cleanWord(w string) string {
 
 	wb := []byte(w)
 
-	for _, cond := range []struct {
+	replaceConds := []struct {
 		re      *regexp.Regexp
 		replace []byte
 	}{
@@ -67,7 +67,9 @@ func cleanWord(w string) string {
 		{quote1MarkRe, []byte("$1")},
 		{quote2MarkRe, []byte("$1")},
 		{quote3MarkRe, []byte("$1")},
-	} {
+	}
+
+	for _, cond := range replaceConds {
 		if cond.re.Match(wb) {
 			wb = cond.re.ReplaceAll(wb, cond.replace)
 			return string(wb)
