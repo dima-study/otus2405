@@ -50,19 +50,27 @@ func (l *list) PushFront(val interface{}) *ListItem {
 		Value: val,
 	}
 
+	l.pushItemFront(front)
+
+	return front
+}
+
+// pushItemFront adds item to the front of the list.
+// Is being used internally by PushFront and MoveToFront.
+func (l *list) pushItemFront(item *ListItem) *ListItem {
 	if l.front == nil {
 		// The list front is nil, so there are no items in the list at all
 		// and the new item becomes the back.
-		l.back = front
+		l.back = item
 	} else {
-		l.front.Prev = front
-		front.Next = l.front
+		l.front.Prev = item
+		item.Next = l.front
 	}
 
-	l.front = front
+	l.front = item
 	l.len++
 
-	return front
+	return item
 }
 
 // PushBack adds value to the back of the list and returns added item.
@@ -109,10 +117,13 @@ func (l *list) Remove(i *ListItem) {
 	}
 
 	l.len--
+
+	i.Prev = nil
+	i.Next = nil
 }
 
 // MoveToFront moves item to the list head.
 func (l *list) MoveToFront(i *ListItem) {
 	l.Remove(i)
-	l.PushFront(i.Value)
+	l.pushItemFront(i)
 }
