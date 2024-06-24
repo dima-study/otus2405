@@ -1,11 +1,20 @@
 package hw04lrucache
 
+// Key represents Cache key
 type Key string
 
 type Cache interface {
 	Set(key Key, value interface{}) bool
 	Get(key Key) (interface{}, bool)
 	Clear()
+}
+
+// lruItemValue represents items value for lruCache.
+// Duplicate key to remove from lruCache.items map due cache overflow.
+// value holds cached value.
+type lruItemValue struct {
+	key   Key
+	value interface{}
 }
 
 type lruCache struct {
@@ -26,15 +35,22 @@ func NewCache(capacity int) Cache {
 // Set adds value by its key into the cache.
 // Returns true if key exists in the cache.
 func (c *lruCache) Set(key Key, value interface{}) bool {
+	iv := lruItemValue{
+		key:   key,
+		value: value,
+	}
 	if i, ok := c.get(key); ok {
-		i.Value = value
+		i.Value = iv
 		return true
 	}
 
-	i := c.queue.PushFront(value)
+	i := c.queue.PushFront(iv)
 	if c.queue.Len() > c.capacity {
-		c.queue.Remove(c.queue.Back())
-		delete(c.items, key)
+		back := c.queue.Back()
+		c.queue.Remove(back)
+
+		backIv := back.Value.(lruItemValue)
+		delete(c.items, backIv.key)
 	}
 
 	c.items[key] = i
@@ -50,7 +66,8 @@ func (c *lruCache) Get(key Key) (interface{}, bool) {
 		return nil, false
 	}
 
-	return i.Value, true
+	iv := i.Value.(lruItemValue)
+	return iv.value, true
 }
 
 // get tries o get value from the cache by its key, and moves it to front when found.
