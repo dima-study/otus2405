@@ -1,6 +1,6 @@
 package hw04lrucache
 
-// Key represents Cache key
+// Key represents Cache key.
 type Key string
 
 type Cache interface {

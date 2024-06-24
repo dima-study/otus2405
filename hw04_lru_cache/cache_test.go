@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCache(t *testing.T) {
+func TestCacheEmpty(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
 		c := NewCache(10)
 
@@ -19,7 +19,9 @@ func TestCache(t *testing.T) {
 		_, ok = c.Get("bbb")
 		require.False(t, ok)
 	})
+}
 
+func TestCacheFlow(t *testing.T) {
 	t.Run("simple", func(t *testing.T) {
 		c := NewCache(3)
 
@@ -131,7 +133,9 @@ func TestCache(t *testing.T) {
 		_, ok = lru.items["bbb"]
 		require.False(t, ok, "bbb key removed")
 	})
+}
 
+func TestCacheClear(t *testing.T) {
 	t.Run("purge logic", func(t *testing.T) {
 		c := NewCache(3)
 
@@ -201,6 +205,8 @@ func TestCacheMultithreading(t *testing.T) {
 }
 
 func validateQueue(t *testing.T, list List, expected interface{}, msg string) {
+	t.Helper()
+
 	got := make([]interface{}, 0, list.Len())
 	for front := list.Front(); front != nil; front = front.Next {
 		got = append(got, front.Value)
