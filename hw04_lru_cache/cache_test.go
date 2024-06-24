@@ -182,6 +182,10 @@ func TestCacheClear(t *testing.T) {
 
 func TestCacheMultithreading(t *testing.T) {
 	c := NewCache(10)
+
+	lru, ok := c.(*lruCache)
+	require.True(t, ok, "Cache is lruCache")
+
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 
@@ -200,6 +204,9 @@ func TestCacheMultithreading(t *testing.T) {
 	}()
 
 	wg.Wait()
+
+	require.Equal(t, lru.capacity, len(lru.items))
+	require.Equal(t, lru.capacity, lru.queue.Len())
 }
 
 func validateQueue(t *testing.T, list List, expected interface{}, msg string) {
