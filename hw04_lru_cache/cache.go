@@ -1,5 +1,7 @@
 package hw04lrucache
 
+import "sync"
+
 // Key represents Cache key.
 type Key string
 
@@ -21,6 +23,8 @@ type lruCache struct {
 	capacity int
 	queue    List
 	items    map[Key]*ListItem
+
+	mx sync.RWMutex
 }
 
 // NewCache creates new ready-to-use LRU cache.
@@ -29,12 +33,16 @@ func NewCache(capacity int) Cache {
 		capacity: capacity,
 		queue:    NewList(),
 		items:    make(map[Key]*ListItem, capacity),
+		mx:       sync.RWMutex{},
 	}
 }
 
 // Set adds value by its key into the cache.
 // Returns true if key exists in the cache.
 func (c *lruCache) Set(key Key, value interface{}) bool {
+	c.mx.Lock()
+	defer c.mx.Unlock()
+
 	iv := lruItemValue{
 		key:   key,
 		value: value,
@@ -61,6 +69,9 @@ func (c *lruCache) Set(key Key, value interface{}) bool {
 // Get tries to get value from the cache by its key.
 // Returns (nil, false) when key is not in the cache.
 func (c *lruCache) Get(key Key) (interface{}, bool) {
+	c.mx.RLock()
+	defer c.mx.RUnlock()
+
 	i, ok := c.get(key)
 	if !ok {
 		return nil, false
@@ -84,6 +95,9 @@ func (c *lruCache) get(key Key) (*ListItem, bool) {
 
 // Clear resets the cache.
 func (c *lruCache) Clear() {
+	c.mx.Lock()
+	defer c.mx.Unlock()
+
 	c.queue = NewList()
 	clear(c.items)
 }
