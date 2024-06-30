@@ -58,12 +58,14 @@ func Test_myWorkerPool_AddWorker(t *testing.T) {
 			default:
 			}
 
-			if myWPool.mu.TryLock() {
-				n := myWPool.numWorkers
-				myWPool.mu.Unlock()
-				if numWorkers-n == workersNumFirst {
-					break
-				}
+			if !myWPool.mu.TryLock() {
+				continue
+			}
+
+			n := myWPool.numWorkers
+			myWPool.mu.Unlock()
+			if numWorkers-n == workersNumFirst {
+				break
 			}
 		}
 		if !timeout.Stop() {
@@ -86,12 +88,14 @@ func Test_myWorkerPool_AddWorker(t *testing.T) {
 			default:
 			}
 
-			if myWPool.mu.TryLock() {
-				n := myWPool.numWorkers
-				myWPool.mu.Unlock()
-				if numWorkers-n == workersNumSecond {
-					break
-				}
+			if !myWPool.mu.TryLock() {
+				continue
+			}
+
+			n := myWPool.numWorkers
+			myWPool.mu.Unlock()
+			if numWorkers-n == workersNumSecond {
+				break
 			}
 		}
 		if !timeout.Stop() {
