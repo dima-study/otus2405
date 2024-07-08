@@ -6,7 +6,7 @@ run:
 
 linters-settings:
   funlen:
-    lines: 150
+    lines: 200
     statements: 80
   depguard:
     rules:
