@@ -2,6 +2,7 @@ package hw06pipelineexecution
 
 import (
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,14 +15,21 @@ const (
 )
 
 func TestPipeline(t *testing.T) {
+	wg := sync.WaitGroup{}
+
 	// Stage generator
-	g := func(_ string, f func(v interface{}) interface{}) Stage {
+	g := func(name string, sleep time.Duration, f func(v interface{}) interface{}) Stage {
 		return func(in In) Out {
+			wg.Add(1)
 			out := make(Bi)
 			go func() {
 				defer close(out)
+				defer wg.Done()
 				for v := range in {
-					time.Sleep(sleepPerStage)
+					t.Logf("[%s] try to send (%T)=%v", name, v, v)
+					if sleep > 0 {
+						time.Sleep(sleep)
+					}
 					out <- f(v)
 				}
 			}()
@@ -30,10 +38,24 @@ func TestPipeline(t *testing.T) {
 	}
 
 	stages := []Stage{
-		g("Dummy", func(v interface{}) interface{} { return v }),
-		g("Multiplier (* 2)", func(v interface{}) interface{} { return v.(int) * 2 }),
-		g("Adder (+ 100)", func(v interface{}) interface{} { return v.(int) + 100 }),
-		g("Stringifier", func(v interface{}) interface{} { return strconv.Itoa(v.(int)) }),
+		g("Dummy",
+			sleepPerStage,
+			func(v interface{}) interface{} { return v },
+		),
+		g(
+			"Multiplier (* 2)",
+			sleepPerStage,
+			func(v interface{}) interface{} { return v.(int) * 2 },
+		),
+		g("Adder (+ 100)",
+			sleepPerStage,
+			func(v interface{}) interface{} { return v.(int) + 100 },
+		),
+		g(
+			"Stringifier",
+			sleepPerStage,
+			func(v interface{}) interface{} { return strconv.Itoa(v.(int)) },
+		),
 	}
 
 	t.Run("simple case", func(t *testing.T) {
@@ -59,6 +81,7 @@ func TestPipeline(t *testing.T) {
 			int64(elapsed),
 			// ~0.8s for processing 5 values in 4 stages (100ms every) concurrently
 			int64(sleepPerStage)*int64(len(stages)+len(data)-1)+int64(fault))
+		wg.Wait()
 	})
 
 	t.Run("done case", func(t *testing.T) {
@@ -89,5 +112,42 @@ func TestPipeline(t *testing.T) {
 
 		require.Len(t, result, 0)
 		require.Less(t, int64(elapsed), int64(abortDur)+int64(fault))
+		wg.Wait()
+	})
+
+	t.Run("done in the middle", func(t *testing.T) {
+		in := make(Bi)
+		done := make(Bi)
+		data := []int{1, 2, 3, 4, 5}
+
+		stages := []Stage{
+			g("1", 0, func(v interface{}) interface{} { return v }),
+			g("2", 0, func(v interface{}) interface{} { return v }),
+			g("3 (* close)", 0, func(v interface{}) interface{} {
+				close(done)
+
+				return v
+			}),
+			g("4 (! closed)", 0, func(v interface{}) interface{} {
+				t.Error("should never happens")
+
+				return v
+			}),
+		}
+
+		go func() {
+			for _, v := range data {
+				in <- v
+			}
+			close(in)
+		}()
+
+		result := make([]string, 0, 10)
+		for s := range ExecutePipeline(in, done, stages...) {
+			result = append(result, s.(string))
+		}
+
+		require.Len(t, result, 0)
+		wg.Wait()
 	})
 }
