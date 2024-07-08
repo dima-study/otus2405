@@ -20,11 +20,7 @@ func (stage Stage) WithDone(done In) Stage {
 			// If stage is canceled, there could be "blocked" senders.
 			// Should we unblock them?
 			defer func() {
-				for {
-					_, ok := <-in
-					if !ok {
-						return
-					}
+				for range in {
 				}
 			}()
 
