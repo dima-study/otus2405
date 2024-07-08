@@ -81,7 +81,14 @@ func TestPipeline(t *testing.T) {
 			int64(elapsed),
 			// ~0.8s for processing 5 values in 4 stages (100ms every) concurrently
 			int64(sleepPerStage)*int64(len(stages)+len(data)-1)+int64(fault))
-		wg.Wait()
+		require.Eventually(t, func() bool {
+			wg.Wait()
+			return true
+		},
+			5*time.Second,
+			100*time.Millisecond,
+			"all stages must be done",
+		)
 	})
 
 	t.Run("done case", func(t *testing.T) {
@@ -112,7 +119,14 @@ func TestPipeline(t *testing.T) {
 
 		require.Len(t, result, 0)
 		require.Less(t, int64(elapsed), int64(abortDur)+int64(fault))
-		wg.Wait()
+		require.Eventually(t, func() bool {
+			wg.Wait()
+			return true
+		},
+			5*time.Second,
+			100*time.Millisecond,
+			"all stages must be done",
+		)
 	})
 
 	t.Run("done in the middle", func(t *testing.T) {
@@ -148,6 +162,13 @@ func TestPipeline(t *testing.T) {
 		}
 
 		require.Len(t, result, 0)
-		wg.Wait()
+		require.Eventually(t, func() bool {
+			wg.Wait()
+			return true
+		},
+			5*time.Second,
+			100*time.Millisecond,
+			"all stages must be done",
+		)
 	})
 }
