@@ -17,6 +17,17 @@ func (stage Stage) WithDone(done In) Stage {
 		wrappedIn := make(Bi)
 
 		go func() {
+			// If stage is canceled, there could be "blocked" senders.
+			// Should we unblock them?
+			defer func() {
+				for {
+					_, ok := <-in
+					if !ok {
+						return
+					}
+				}
+			}()
+
 			defer close(wrappedIn)
 
 			// Read from original input while possible.
@@ -38,7 +49,7 @@ func (stage Stage) WithDone(done In) Stage {
 						return
 					}
 
-					// Cancel or write.
+					// Cancel or send.
 					select {
 					case <-done:
 						return
