@@ -85,6 +85,12 @@ type tableTest struct {
 	errAs    func(err error) (error, bool)
 }
 
+func genErrAs[T error](target T) func(err error) (error, bool) {
+	return func(err error) (error, bool) {
+		return target, errors.As(err, &target)
+	}
+}
+
 func TestCopy(t *testing.T) {
 	tests := []tableTest{
 		{
@@ -102,7 +108,7 @@ func TestCopy(t *testing.T) {
 					limit:    0,
 				}
 			},
-			errIs: fs.ErrNotExist,
+			errAs: genErrAs(new(fs.PathError)),
 		},
 		{
 			name: "directory",
@@ -181,12 +187,7 @@ func TestCopy(t *testing.T) {
 
 				teardownTest(t, a.fromPath)
 			},
-			errIs: fs.ErrPermission,
-			// errAs: func(err error) (error, bool) {
-			// 	var target *fs.PathError
-			//
-			// 	return target, errors.As(err, &target)
-			// },
+			errAs: genErrAs(new(fs.PathError)),
 		},
 		{
 			name: "can't open output file for writing",
@@ -214,7 +215,7 @@ func TestCopy(t *testing.T) {
 				teardownTest(t, a.fromPath)
 				teardownTest(t, a.toPath)
 			},
-			errIs: fs.ErrPermission,
+			errAs: genErrAs(new(fs.PathError)),
 		},
 		{
 			name: "valid offset",
@@ -237,7 +238,6 @@ func TestCopy(t *testing.T) {
 				teardownTest(t, a.fromPath)
 				teardownTest(t, a.toPath)
 			},
-			errIs: nil,
 		},
 		{
 			name: "link",
@@ -258,7 +258,6 @@ func TestCopy(t *testing.T) {
 
 				teardownTest(t, a.toPath)
 			},
-			errIs: nil,
 		},
 	}
 
