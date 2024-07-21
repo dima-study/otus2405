@@ -286,3 +286,44 @@ func TestCopy(t *testing.T) {
 		})
 	}
 }
+
+func Test_progressBarLimit(t *testing.T) {
+	type args struct {
+		filesize int64
+		limit    int64
+		offset   int64
+	}
+	tests := []struct {
+		name string
+		args args
+		want int64
+	}{
+		{
+			name: "sizable",
+			args: args{100, 10, 0},
+			want: 10,
+		},
+		{
+			name: "sizable with offset",
+			args: args{100, 60, 50},
+			want: 50,
+		},
+		{
+			name: "unsizable with limit",
+			args: args{0, 100, 0},
+			want: 100,
+		},
+		{
+			name: "unsizable with limit and offset",
+			args: args{0, 100, 200},
+			want: 100,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := progressBarLimit(tt.args.filesize, tt.args.limit, tt.args.offset); got != tt.want {
+				t.Errorf("progressBarLimit() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
