@@ -14,6 +14,10 @@ var (
 
 // Copy tries to copy up to limit bytes from fromPath (with offset) into toPath.
 // Returns any occurred error.
+//
+// Expects non-negative offset and limit.
+//
+// Expects non-negative offset and limit.
 func Copy(fromPath, toPath string, offset, limit int64) error {
 	// Quick-check if file (not dir!) exists and offset is not exceeds file size.
 	fInfo, err := os.Stat(fromPath)
