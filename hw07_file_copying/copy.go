@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -26,6 +27,40 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 			"%w: filesize=%d < offset=%d",
 			ErrOffsetExceedsFileSize, fInfo.Size(), offset,
 		)
+	}
+
+	// Open fromPath for reading...
+	fileFrom, err := os.OpenFile(fromPath, os.O_RDONLY, 0)
+	if err != nil {
+		return fmt.Errorf("can't open input file for reading: %w", err)
+	}
+	defer fileFrom.Close() // Should we catch the error?
+
+	// ... and seeks the offset.
+	_, err = fileFrom.Seek(offset, 0)
+	if err != nil {
+		return fmt.Errorf("can't seek offset %d of input file: %w", offset, err)
+	}
+
+	// Open toPath for writing (create if not exists, truncate if exists).
+	fileTo, err := os.OpenFile(toPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0o644)
+	if err != nil {
+		return fmt.Errorf("can't open output file for writing: %w", err)
+	}
+	defer fileTo.Close() // Should we catch the error?
+
+	// Limit up to fromPath file size.
+	if limit == 0 {
+		limit = fInfo.Size()
+	}
+
+	// fileFromLimited could read up to limit from fileFrom.
+	fileFromLimited := io.LimitReader(fileFrom, limit)
+
+	// Copy with limit or return the error.
+	_, err = io.Copy(fileTo, fileFromLimited)
+	if err != nil {
+		return fmt.Errorf("error while copying file: %w", err)
 	}
 
 	return nil
