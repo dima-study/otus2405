@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"io/fs"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -40,6 +41,20 @@ func TestReadDir(t *testing.T) {
 			},
 			err:   nil,
 			errAs: nil,
+		},
+		{
+			name:   "env dir doesn't exists",
+			dir:    "./testdata/does-not-exist",
+			result: nil,
+			err:    fs.ErrNotExist,
+			errAs:  nil,
+		},
+		{
+			name:   "empty env dir",
+			dir:    "./testdata/empty",
+			result: Environment{},
+			err:    nil,
+			errAs:  nil,
 		},
 	}
 
