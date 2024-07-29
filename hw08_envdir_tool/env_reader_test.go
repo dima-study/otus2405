@@ -25,12 +25,18 @@ func genErrAs[T error](target T) func(err error) (error, bool) {
 func TestReadDir(t *testing.T) {
 	tests := []tableTest{
 		{
-			name: "t1",
-			dir:  "./testdata/t1",
+			name: "t",
+			dir:  "./testdata/t",
 			result: Environment{
-				"FOO":       EnvValue{"BAR", false},
-				"MULTILINE": EnvValue{"Line 1", false},
-				"UNSET":     EnvValue{"", true},
+				"EMPTY":         EnvValue{"", false},
+				"FOO":           EnvValue{"BAR", false},
+				"MULTILINE":     EnvValue{"Line 1", false},
+				"SPACES":        EnvValue{"  Spaces", false},
+				"SPACES-N-TABS": EnvValue{"  \tspaces and tabs", false},
+				"TABS":          EnvValue{"\tTabs", false},
+				"TABS-N-SPACES": EnvValue{"\t  tabs and spaces", false},
+				"UNSET":         EnvValue{"", true},
+				"ZEROES":        EnvValue{"  here\nnew\nline", false},
 			},
 			err:   nil,
 			errAs: nil,
