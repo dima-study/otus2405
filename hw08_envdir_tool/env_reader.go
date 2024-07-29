@@ -49,7 +49,7 @@ ENTRY:
 
 		// ... and read the first line.
 		buf := bufio.NewReader(file)
-		lineBytes, err := buf.ReadBytes('\n')
+		line, err := buf.ReadBytes('\n')
 		if err != nil {
 			if !errors.Is(err, io.EOF) {
 				return nil, fmt.Errorf("can't read file '%s': %w", entry.Name(), err)
@@ -57,7 +57,7 @@ ENTRY:
 		}
 
 		// Line is empty line: remove the environment variable.
-		if len(lineBytes) == 0 || lineBytes[0] == '\n' {
+		if len(line) == 0 || line[0] == '\n' {
 			env[entry.Name()] = EnvValue{
 				Value:      "",
 				NeedRemove: true,
@@ -69,13 +69,13 @@ ENTRY:
 		// Okay. Line is not empty, environment variable should be set.
 
 		// Remove terminating space, tabs and new-line.
-		line := strings.TrimRight(string(lineBytes), " \t\n")
+		line = bytes.TrimRight(line, " \t\n")
 
 		// Replace 0x00 to '\n'.
-		line = string(bytes.ReplaceAll([]byte(line), []byte{0x00}, []byte{'\n'}))
+		line = bytes.ReplaceAll(line, []byte{0x00}, []byte{'\n'})
 
 		env[entry.Name()] = EnvValue{
-			Value:      line,
+			Value:      string(line),
 			NeedRemove: false,
 		}
 	}
