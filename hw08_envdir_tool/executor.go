@@ -36,7 +36,7 @@ func RunCmd(cmdline []string, env Environment) (returnCode int, err error) {
 
 // prepareCmd creates new command and sets env environment variables from env.
 func prepareCmd(cmdline []string, env Environment) *exec.Cmd {
-	cmd := exec.Command(cmdline[0], cmdline[1:]...)
+	cmd := exec.Command(cmdline[0], cmdline[1:]...) //nolint:gosec
 
 	// Current env
 	osEnv := os.Environ()
