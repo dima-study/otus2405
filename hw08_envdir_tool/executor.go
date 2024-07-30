@@ -29,7 +29,7 @@ func RunCmd(cmdline []string, env Environment) (returnCode int, err error) {
 		return CodeStartFail, err
 	}
 
-	// Wait until command completes or return CodeWaitFail with error.
+	// Wait until command completes and return exit code with possible error.
 	err = execCmd.Wait()
 	return execCmd.ProcessState.ExitCode(), err
 }
