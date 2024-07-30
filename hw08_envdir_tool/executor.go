@@ -6,11 +6,32 @@ import (
 	"strings"
 )
 
+const (
+	CodeStartFail = -128
+)
+
 // RunCmd runs a command + arguments (cmd) with environment variables from env.
-//
 // Also sets Stdin, Stdout and Stderr.
-func RunCmd(cmdline []string, env Environment) (returnCode int) {
-	return
+//
+// Returns CodeStartFail and the error once command start is failed.
+// Returns exit code and possible occurred error.
+func RunCmd(cmdline []string, env Environment) (returnCode int, err error) {
+	execCmd := prepareCmd(cmdline, env)
+
+	// Set stdin, stdout, stderr
+	execCmd.Stdin = os.Stdin
+	execCmd.Stdout = os.Stdout
+	execCmd.Stderr = os.Stderr
+
+	// Try to start
+	err = execCmd.Start()
+	if err != nil {
+		return CodeStartFail, err
+	}
+
+	// Wait until command completes or return CodeWaitFail with error.
+	err = execCmd.Wait()
+	return execCmd.ProcessState.ExitCode(), err
 }
 
 // prepareCmd creates new command and sets env environment variables from env.
