@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"strings"
 )
@@ -28,32 +29,22 @@ func ReadDir(dir string) (Environment, error) {
 
 	env := Environment{}
 
-	fs := os.DirFS(dir)
-ENTRY:
+	dirFS := os.DirFS(dir)
 	for _, entry := range entries {
 		// Skip dirs.
 		if entry.IsDir() {
-			continue ENTRY
+			continue
 		}
 
 		// Skip wrong file names: file should not contain '='.
 		if strings.IndexByte(entry.Name(), '=') != -1 {
-			continue ENTRY
+			continue
 		}
 
-		// Try open the file...
-		file, err := fs.Open(entry.Name())
+		// Read the line from current file.
+		line, err := readFileLine(dirFS, entry.Name())
 		if err != nil {
-			return nil, fmt.Errorf("can't open file '%s': %w", entry.Name(), err)
-		}
-
-		// ... and read the first line.
-		buf := bufio.NewReader(file)
-		line, err := buf.ReadBytes('\n')
-		if err != nil {
-			if !errors.Is(err, io.EOF) {
-				return nil, fmt.Errorf("can't read file '%s': %w", entry.Name(), err)
-			}
+			return nil, err
 		}
 
 		// Line is empty line: remove the environment variable.
@@ -63,7 +54,7 @@ ENTRY:
 				NeedRemove: true,
 			}
 
-			continue ENTRY
+			continue
 		}
 
 		// Okay. Line is not empty, environment variable should be set.
@@ -81,4 +72,26 @@ ENTRY:
 	}
 
 	return env, nil
+}
+
+// readFileLine tries to open specified filename from dirFS and read the first line.
+// Returns read line or occurred error.
+func readFileLine(dirFS fs.FS, filename string) ([]byte, error) {
+	// Try open the file
+	file, err := dirFS.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("can't open file '%s': %w", filename, err)
+	}
+	defer file.Close()
+
+	// Read the first line.
+	buf := bufio.NewReader(file)
+	line, err := buf.ReadBytes('\n')
+	if err != nil {
+		if !errors.Is(err, io.EOF) {
+			return nil, fmt.Errorf("can't read file '%s': %w", filename, err)
+		}
+	}
+
+	return line, nil
 }
