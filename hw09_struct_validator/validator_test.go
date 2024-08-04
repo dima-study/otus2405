@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type UserRole string
@@ -55,6 +57,22 @@ func TestValidate(t *testing.T) {
 
 			// Place your code here.
 			_ = tt
+		})
+	}
+}
+
+func TestValidateErr(t *testing.T) {
+	tests := []interface{}{
+		int64(5),
+		"string",
+		[]string{"string"},
+		map[string]int{"a": 1},
+	}
+	for _, v := range tests {
+		t.Run(fmt.Sprintf("err:%v", v), func(t *testing.T) {
+			err := Validate(v)
+			require.NotNil(t, err, "err must be not nil")
+			require.ErrorIs(t, err, ErrNotStruct, "err must be ErrNotStruct")
 		})
 	}
 }
