@@ -1,13 +1,14 @@
 package hw09structvalidator
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
-	"errors"
 )
 
 var (
+	ErrTypeNotSupported             = errors.New("field type is not supported for validation")
 	ErrValidatorIncorrectRuleSyntax = errors.New("incorrect rule syntax")
 	ErrValidatorRuleNotSupported    = errors.New("rule not supported")
 )
@@ -15,21 +16,24 @@ var (
 type (
 	ValueValidatorFn func(fieldValue reflect.Value) error
 
-	// Validator represents validator for some Kind of struct field.
+	// Validator represents validator for some Type.
 	Validator interface {
-		// Supports indicate if rule supports validation for structField
-		Supports(structField reflect.StructField) bool
+		// String should return validator name.
+		String() string
+
+		// Supports indicate if validator supports fieldType for validation.
+		Supports(fieldType reflect.Type) bool
 
 		// Kind returns kind of validation.
 		Kind() reflect.Kind
 
 		// ValidatorsFor tries to create slice of value validators for provided rules.
-		ValidatorsFor(rules string) ([]ValueValidatorFn, error)
+		// Must return ErrTypeNotSupported if fieldType is not supported by validator.
+		ValidatorsFor(fieldType reflect.Type, rules string) ([]ValueValidatorFn, error)
 	}
 )
 
 type validatorRuleMatcher struct {
-	name     string
 	unionSep string
 	ruleSep  string
 }
@@ -47,7 +51,7 @@ func (r validatorRuleMatcher) validatorsFor(rules string, ruleMap map[string]mak
 
 		// Must be in format "<ruleName><ruleSep><ruleCond>"
 		if !ok {
-			return nil, fmt.Errorf("%s %s: %w", r.name, rule, ErrValidatorIncorrectRuleSyntax)
+			return nil, fmt.Errorf("%s: %w", rule, ErrValidatorIncorrectRuleSyntax)
 		}
 
 		// Check for supported rules
@@ -63,7 +67,7 @@ func (r validatorRuleMatcher) validatorsFor(rules string, ruleMap map[string]mak
 
 		// Validator preparing error.
 		if err != nil {
-			return nil, fmt.Errorf("%s %s(%s): %w", r.name, ruleName, ruleCond, err)
+			return nil, fmt.Errorf("%s(%s): %w", ruleName, ruleCond, err)
 		}
 
 		validators = append(validators, v)

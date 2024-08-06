@@ -22,7 +22,6 @@ import (
 func StringValidator() Validator {
 	return stringValidator{
 		validatorRuleMatcher: validatorRuleMatcher{
-			name:     "stringValidator",
 			unionSep: "|",
 			ruleSep:  ":",
 		},
@@ -39,9 +38,14 @@ var (
 	ErrStringIn     = errors.New("string not in the set")
 )
 
-// Supports returns true if structField is field of string.
-func (r stringValidator) Supports(structField reflect.StructField) bool {
-	return structField.Type.Kind() == reflect.String
+// String returns validator name.
+func (r stringValidator) String() string {
+	return "stringValidator"
+}
+
+// Supports returns true if fieldType is string.
+func (r stringValidator) Supports(fieldType reflect.Type) bool {
+	return fieldType.Kind() == reflect.String
 }
 
 func (r stringValidator) Kind() reflect.Kind {
@@ -49,7 +53,13 @@ func (r stringValidator) Kind() reflect.Kind {
 }
 
 // ValidatorsFor returns slice of value validators for provided rules.
-func (r stringValidator) ValidatorsFor(rules string) ([]ValueValidatorFn, error) {
+// Returns ErrTypeNotSupported if fieldType is not supported by validator.
+func (r stringValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]ValueValidatorFn, error) {
+	// Check if validator supports specified struct field.
+	if !r.Supports(fieldType) {
+		return nil, ErrTypeNotSupported
+	}
+
 	ruleMap := map[string]makeValidatorFn{
 		"len":    r.validatorLen,
 		"regexp": r.validatorRegexp,

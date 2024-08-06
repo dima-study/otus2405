@@ -22,7 +22,6 @@ import (
 func IntValidator() Validator {
 	return intValidator{
 		validatorRuleMatcher: validatorRuleMatcher{
-			name:     "intValidator",
 			unionSep: "|",
 			ruleSep:  ":",
 		},
@@ -39,9 +38,14 @@ var (
 	ErrIntIn  = errors.New("value not in the set")
 )
 
-// Supports returns true if structField is field of int.
-func (r intValidator) Supports(structField reflect.StructField) bool {
-	return structField.Type.Kind() == reflect.Int
+// String returns validator name.
+func (r intValidator) String() string {
+	return "intValidator"
+}
+
+// Supports returns true if fieldType is type of int.
+func (r intValidator) Supports(fieldType reflect.Type) bool {
+	return fieldType.Kind() == reflect.Int
 }
 
 func (r intValidator) Kind() reflect.Kind {
@@ -49,7 +53,13 @@ func (r intValidator) Kind() reflect.Kind {
 }
 
 // ValidatorsFor returns slice of value validators for provided rules.
-func (r intValidator) ValidatorsFor(rules string) ([]ValueValidatorFn, error) {
+// Returns ErrTypeNotSupported if fieldType is not supported by validator.
+func (r intValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]ValueValidatorFn, error) {
+	// Check if validator supports specified struct field.
+	if !r.Supports(fieldType) {
+		return nil, ErrTypeNotSupported
+	}
+
 	ruleMap := map[string]makeValidatorFn{
 		"min": r.validatorMin,
 		"max": r.validatorMax,
