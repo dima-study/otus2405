@@ -77,20 +77,20 @@ func Test_intValidator_validatorMin(t *testing.T) {
 		require.NotNil(t, fn, "fn must not be nil")
 
 		tests := []struct {
-			val int
-			err error
+			val    int
+			hasErr bool
 		}{
-			{5, ErrIntMin},
-			{42, nil},
-			{45, nil},
+			{5, true},
+			{42, false},
+			{45, false},
 		}
 
 		for _, tt := range tests {
 			t.Run(strconv.Itoa(tt.val), func(t *testing.T) {
 				val := reflect.ValueOf(tt.val)
 				err = fn(val)
-				if tt.err != nil {
-					require.ErrorIs(t, err, tt.err, "err must be ErrIntMin")
+				if tt.hasErr {
+					require.ErrorIs(t, err, ErrIntMin, "err must be ErrIntMin")
 				} else {
 					require.Nil(t, err, "err must be nil")
 				}
@@ -113,20 +113,20 @@ func Test_intValidator_validatorMax(t *testing.T) {
 		require.NotNil(t, fn, "fn must not be nil")
 
 		tests := []struct {
-			val int
-			err error
+			val    int
+			hasErr bool
 		}{
-			{5, nil},
-			{42, nil},
-			{45, ErrIntMax},
+			{5, false},
+			{42, false},
+			{45, true},
 		}
 
 		for _, tt := range tests {
 			t.Run(strconv.Itoa(tt.val), func(t *testing.T) {
 				val := reflect.ValueOf(tt.val)
 				err = fn(val)
-				if tt.err != nil {
-					require.ErrorIs(t, err, tt.err, "err must be ErrIntMin")
+				if tt.hasErr {
+					require.ErrorIs(t, err, ErrIntMax, "err must be ErrIntMax")
 				} else {
 					require.Nil(t, err, "err must be nil")
 				}
@@ -149,20 +149,20 @@ func Test_intValidator_validatorIn(t *testing.T) {
 		require.NotNil(t, fn, "fn must not be nil")
 
 		tests := []struct {
-			val int
-			err error
+			val    int
+			hasErr bool
 		}{
-			{5, ErrIntIn},
-			{24, nil},
-			{42, nil},
+			{5, true},
+			{24, false},
+			{42, false},
 		}
 
 		for _, tt := range tests {
 			t.Run(strconv.Itoa(tt.val), func(t *testing.T) {
 				val := reflect.ValueOf(tt.val)
 				err = fn(val)
-				if tt.err != nil {
-					require.ErrorIs(t, err, tt.err, "err must be ErrIntMin")
+				if tt.hasErr {
+					require.ErrorIs(t, err, ErrIntIn, "err must be ErrIntIn")
 				} else {
 					require.Nil(t, err, "err must be nil")
 				}
