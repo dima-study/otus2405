@@ -32,31 +32,39 @@ func Test_stringValidator_Supports(t *testing.T) {
 			require.True(t, ok, "field "+tt.field+" must be found")
 
 			if tt.supported {
-				require.True(t, v.Supports(field), "field "+tt.field+" must be supported")
+				require.True(t, v.Supports(field.Type), "field "+tt.field+" must be supported")
 			} else {
-				require.False(t, v.Supports(field), "field "+tt.field+" must not be supported")
+				require.False(t, v.Supports(field.Type), "field "+tt.field+" must not be supported")
 			}
 		})
 	}
 }
 
 func Test_stringValidator_ValidatorsFor(t *testing.T) {
+	s := struct {
+		field string
+	}{}
+
+	sT := reflect.TypeOf(s)
 	v := StringValidator()
 
+	structField, ok := sT.FieldByName("field")
+	require.True(t, ok, "field must be found")
+
 	t.Run("success", func(t *testing.T) {
-		validators, err := v.ValidatorsFor(`len:2|in:aa,bb,cc|regexp:^[^0-9]{2}$`)
+		validators, err := v.ValidatorsFor(structField.Type, `len:2|in:aa,bb,cc|regexp:^[^0-9]{2}$`)
 		require.Nil(t, err, "err must be nil")
 		require.Len(t, validators, 3, "must be 3 validators")
 	})
 
 	t.Run("failed not supported", func(t *testing.T) {
-		validators, err := v.ValidatorsFor(`lEn:2|iN:aa,bb,cc|reGexp:^[^0-9]{2}$`)
+		validators, err := v.ValidatorsFor(structField.Type, `lEn:2|iN:aa,bb,cc|reGexp:^[^0-9]{2}$`)
 		require.ErrorIs(t, err, ErrValidatorRuleNotSupported, "err is ErrValidatorRuleNotSupported")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 
 	t.Run("failed incorrect syntax", func(t *testing.T) {
-		validators, err := v.ValidatorsFor(`lEn=2`)
+		validators, err := v.ValidatorsFor(structField.Type, `lEn=2`)
 		require.ErrorIs(t, err, ErrValidatorIncorrectRuleSyntax, "err is ErrValidatorIncorrectRuleSyntax")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
