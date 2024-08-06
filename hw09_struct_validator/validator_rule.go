@@ -28,7 +28,7 @@ type (
 		Kind() reflect.Kind
 
 		// ValidatorsFor tries to create slice of value validators for provided rules.
-		// Returns ErrTypeNotSupported if fieldType is not supported by validator.
+		// Returns ErrTypeNotSupported (possibly wrapped) if fieldType is not supported by validator.
 		ValidatorsFor(fieldType reflect.Type, rules string) ([]ValueValidatorFn, error)
 	}
 )
@@ -46,7 +46,7 @@ type validatorRuleMatcher struct {
 type genValidatorFn func(ruleCond string) (ValueValidatorFn, error)
 
 // validatorsFor returns slice of value validators for provided rules.
-// Could return wrapped ErrValidatorIncorrectRuleSyntax or ErrValidatorRuleNotSupported.
+// Could return (possibly wrapped) ErrValidatorIncorrectRuleSyntax or ErrValidatorRuleNotSupported.
 func (r validatorRuleMatcher) validatorsFor(rules string, ruleMap map[string]genValidatorFn) ([]ValueValidatorFn, error) {
 	vrules := strings.Split(rules, r.unionSep)
 	validators := make([]ValueValidatorFn, 0, len(vrules))
