@@ -60,7 +60,7 @@ func (r stringValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]
 		return nil, ErrTypeNotSupported
 	}
 
-	ruleMap := map[string]makeValidatorFn{
+	ruleMap := map[string]genValidatorFn{
 		"len":    r.validatorLen,
 		"regexp": r.validatorRegexp,
 		"in":     r.validatorIn,
@@ -69,7 +69,7 @@ func (r stringValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]
 	return r.validatorsFor(rules, ruleMap)
 }
 
-// validatorLen is generator for "len"-rule validator of ruleCond.
+// validatorLen is a generator of "len"-rule validator for ruleCond.
 // ValueValidatorFn accepts fieldValue of Kind string.
 func (r stringValidator) validatorLen(ruleCond string) (ValueValidatorFn, error) {
 	lenVal, err := strconv.Atoi(ruleCond)
@@ -87,7 +87,7 @@ func (r stringValidator) validatorLen(ruleCond string) (ValueValidatorFn, error)
 	}, nil
 }
 
-// validatorRegexp is generator for "regexp"-rule validator of ruleCond.
+// validatorRegexp is a generator of "regexp"-rule validator for ruleCond.
 // ValueValidatorFn accepts fieldValue of Kind string.
 func (r stringValidator) validatorRegexp(ruleCond string) (ValueValidatorFn, error) {
 	re, err := regexp.Compile(ruleCond)
@@ -105,7 +105,7 @@ func (r stringValidator) validatorRegexp(ruleCond string) (ValueValidatorFn, err
 	}, nil
 }
 
-// validatorIn is generator for "in"-rule validator of ruleCond.
+// validatorIn is a generator of "in"-rule validator for ruleCond.
 // ValueValidatorFn accepts fieldValue of Kind string.
 func (r stringValidator) validatorIn(ruleCond string) (ValueValidatorFn, error) {
 	const sep = ","

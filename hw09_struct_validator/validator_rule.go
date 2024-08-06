@@ -28,21 +28,26 @@ type (
 		Kind() reflect.Kind
 
 		// ValidatorsFor tries to create slice of value validators for provided rules.
-		// Must return ErrTypeNotSupported if fieldType is not supported by validator.
+		// Returns ErrTypeNotSupported if fieldType is not supported by validator.
 		ValidatorsFor(fieldType reflect.Type, rules string) ([]ValueValidatorFn, error)
 	}
 )
 
+// validatorRuleMatcher is a parser/matcher of validation rules (via validatorsFor).
+// Parses rules in format of
+//
+//	<rule 1><ruleSep><rule 1 condition>[<unionSep><rule 2><ruleSep><rule 2 condition><unionSep>etc...]
 type validatorRuleMatcher struct {
 	unionSep string
 	ruleSep  string
 }
 
-type makeValidatorFn func(string) (ValueValidatorFn, error)
+// genValidatorFn reoresents generator function for value validator based on ruleCond.
+type genValidatorFn func(ruleCond string) (ValueValidatorFn, error)
 
 // validatorsFor returns slice of value validators for provided rules.
 // Could return wrapped ErrValidatorIncorrectRuleSyntax or ErrValidatorRuleNotSupported.
-func (r validatorRuleMatcher) validatorsFor(rules string, ruleMap map[string]makeValidatorFn) ([]ValueValidatorFn, error) {
+func (r validatorRuleMatcher) validatorsFor(rules string, ruleMap map[string]genValidatorFn) ([]ValueValidatorFn, error) {
 	vrules := strings.Split(rules, r.unionSep)
 	validators := make([]ValueValidatorFn, 0, len(vrules))
 
@@ -55,17 +60,19 @@ func (r validatorRuleMatcher) validatorsFor(rules string, ruleMap map[string]mak
 		}
 
 		// Check for supported rules
-		fn, exists := ruleMap[ruleName]
+		genFn, exists := ruleMap[ruleName]
 
 		var v ValueValidatorFn
 		var err error
-		if fn == nil || !exists {
+		if genFn == nil || !exists {
+			// Value validator not found for ruleName
 			err = ErrValidatorRuleNotSupported
 		} else {
-			v, err = fn(ruleCond)
+			// Generate value validator of ruleName for ruleCond.
+			v, err = genFn(ruleCond)
 		}
 
-		// Validator preparing error.
+		// Error while generate value validator.
 		if err != nil {
 			return nil, fmt.Errorf("%s(%s): %w", ruleName, ruleCond, err)
 		}

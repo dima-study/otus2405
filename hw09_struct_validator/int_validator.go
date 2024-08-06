@@ -60,7 +60,7 @@ func (r intValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]Val
 		return nil, ErrTypeNotSupported
 	}
 
-	ruleMap := map[string]makeValidatorFn{
+	ruleMap := map[string]genValidatorFn{
 		"min": r.validatorMin,
 		"max": r.validatorMax,
 		"in":  r.validatorIn,
@@ -69,7 +69,7 @@ func (r intValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]Val
 	return r.validatorsFor(rules, ruleMap)
 }
 
-// validatorMin is generator for "min"-rule validator of ruleCond.
+// validatorMin is a generator of "min"-rule validator for ruleCond.
 // ValueValidatorFn accepts fieldValue of Kind int.
 func (r intValidator) validatorMin(ruleCond string) (ValueValidatorFn, error) {
 	minVal, err := strconv.Atoi(ruleCond)
@@ -87,7 +87,7 @@ func (r intValidator) validatorMin(ruleCond string) (ValueValidatorFn, error) {
 	}, nil
 }
 
-// validatorMax is generator for "max"-rule validator of ruleCond.
+// validatorMax is a generator of "max"-rule validator for ruleCond.
 // ValueValidatorFn accepts fieldValue of Kind int.
 func (r intValidator) validatorMax(ruleCond string) (ValueValidatorFn, error) {
 	maxVal, err := strconv.Atoi(ruleCond)
@@ -105,7 +105,7 @@ func (r intValidator) validatorMax(ruleCond string) (ValueValidatorFn, error) {
 	}, nil
 }
 
-// validatorIn is generator for "in"-rule validator of ruleCond.
+// validatorIn is a generator of "in"-rule validator for ruleCond.
 // ValueValidatorFn accepts fieldValue of Kind int.
 func (r intValidator) validatorIn(ruleCond string) (ValueValidatorFn, error) {
 	const sep = ","
