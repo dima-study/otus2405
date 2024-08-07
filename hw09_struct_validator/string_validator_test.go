@@ -109,7 +109,7 @@ func Test_stringValidator_validatorLen(t *testing.T) {
 func Test_stringValidator_validatorRegexp(t *testing.T) {
 	v := stringValidator{}
 	t.Run("error", func(t *testing.T) {
-		fn, err := v.validatorLen("invalid")
+		fn, err := v.validatorRegexp("[a-b")
 		require.NotNil(t, err, "err must not be nil")
 		require.Nil(t, fn, "fn must be nil")
 	})
@@ -147,11 +147,6 @@ func Test_stringValidator_validatorRegexp(t *testing.T) {
 
 func Test_stringValidator_validatorIn(t *testing.T) {
 	v := stringValidator{}
-	t.Run("error", func(t *testing.T) {
-		fn, err := v.validatorLen("invalid")
-		require.NotNil(t, err, "err must not be nil")
-		require.Nil(t, fn, "fn must be nil")
-	})
 
 	t.Run("validate", func(t *testing.T) {
 		fn, err := v.validatorIn("bb,ccc,a")
