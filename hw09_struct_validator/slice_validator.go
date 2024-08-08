@@ -27,36 +27,6 @@ type sliceValidator struct {
 	supported map[reflect.Kind]Validator
 }
 
-// SliceItemError represents validation error Err for item in slice at Index position.
-type SliceItemError struct {
-	Index int
-	Err   error
-}
-
-func (e SliceItemError) Error() string {
-	return fmt.Sprintf("[%d]: %s", e.Index, e.Err)
-}
-
-// SliceErrors represents list of validaion errors for items in slice.
-type SliceErrors []SliceItemError
-
-func (e SliceErrors) Error() string {
-	if len(e) == 0 {
-		return ""
-	}
-
-	errs := strings.Builder{}
-	errs.WriteString("slice validation errors:\n")
-
-	for _, ie := range e {
-		errs.WriteString("  ")
-		errs.WriteString(ie.Error())
-		errs.WriteString("\n")
-	}
-
-	return errs.String()
-}
-
 var ErrSliceNested = errors.New("nested validator error")
 
 // String returns validator name.
@@ -73,7 +43,7 @@ func (r sliceValidator) Supports(fieldType reflect.Type) bool {
 	}
 
 	// Check if slice item type is supported for validation.
-	_, exists := r.supported[sliceItemsType(fieldType).Kind()]
+	_, exists := r.supported[fieldType.Elem().Kind()]
 	return exists
 }
 
@@ -82,14 +52,16 @@ func (r sliceValidator) Kind() reflect.Kind {
 }
 
 // ValidatorsFor returns value validators for provided rules.
-// Returns ErrTypeNotSupported if stfieldType is not supported by validator.
-func (r sliceValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]ValueValidatorFn, error) {
+//
+// Returns ErrTypeNotSupported if sliceType is not supported by validator.
+// Could return (possibly wrapped) ErrSliceNested.
+func (r sliceValidator) ValidatorsFor(sliceType reflect.Type, rules string) ([]ValueValidatorFn, error) {
 	// Check if validator supports specified struct field.
-	if !r.Supports(fieldType) {
+	if !r.Supports(sliceType) {
 		return nil, ErrTypeNotSupported
 	}
 
-	itemsType := sliceItemsType(fieldType)
+	itemsType := sliceType.Elem()
 
 	// Suitable validator for structField slice items.
 	itemsTypeValidator := r.validatorFor(itemsType)
@@ -114,17 +86,52 @@ func (r sliceValidator) validatorFor(itemsType reflect.Type) Validator {
 	return validator
 }
 
+// SliceItemError represents validation error Err for item in slice at Index position.
+type SliceItemError struct {
+	Parent string
+	Index  int
+	Err    error
+}
+
+func (e SliceItemError) Error() string {
+	return fmt.Sprintf("[%d]: %s", e.Index, e.Err)
+}
+
+// SliceErrors represents list of validaion errors for items in slice.
+type SliceErrors []SliceItemError
+
+func (e SliceErrors) Error() string {
+	if len(e) == 0 {
+		return ""
+	}
+
+	errs := strings.Builder{}
+	errs.WriteString("slice validation errors:\n")
+
+	for i, ie := range e {
+		if i > 0 {
+			errs.WriteString("\n")
+		}
+
+		e := strings.ReplaceAll(ie.Error(), "\n", "\n  ")
+		errs.WriteString("  ")
+		errs.WriteString(e)
+	}
+
+	return errs.String()
+}
+
 // validatorSlice is a generator of validator for slice items.
 //
 // Each slice item will be validated by list of validators.
-// ValueValidatorFn returns SliceErrors error or nil.
+// ValueValidatorFn accepts value of Kind slice, and returns SliceErrors error or nil.
 func (r sliceValidator) validatorSlice(validators []ValueValidatorFn) ValueValidatorFn {
-	return func(fieldValue reflect.Value) error {
+	return func(sliceValue reflect.Value) error {
 		errs := SliceErrors{}
 
 		// Each item in slice...
-		for i := range fieldValue.Len() {
-			itemValue := fieldValue.Index(i)
+		for i := range sliceValue.Len() {
+			itemValue := sliceValue.Index(i)
 
 			// ... should be validated by every validator
 			for _, v := range validators {
@@ -147,10 +154,4 @@ func (r sliceValidator) validatorSlice(validators []ValueValidatorFn) ValueValid
 
 		return nil
 	}
-}
-
-// sliceItemsType returns type of items for slice type fieldType.
-// fieldType must be type of slice.
-func sliceItemsType(fieldType reflect.Type) reflect.Type {
-	return fieldType.Elem()
 }

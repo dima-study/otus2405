@@ -52,7 +52,14 @@ func (r intValidator) Kind() reflect.Kind {
 	return reflect.Int
 }
 
+const (
+	RuleIntMin = "min"
+	RuleIntMax = "max"
+	RuleIntIn  = "in"
+)
+
 // ValidatorsFor returns slice of value validators for provided rules.
+//
 // Returns ErrTypeNotSupported if fieldType is not supported by validator.
 func (r intValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]ValueValidatorFn, error) {
 	// Check if validator supports specified struct field.
@@ -61,24 +68,24 @@ func (r intValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]Val
 	}
 
 	ruleMap := map[string]genValidatorFn{
-		"min": r.validatorMin,
-		"max": r.validatorMax,
-		"in":  r.validatorIn,
+		RuleIntMin: r.validatorMin,
+		RuleIntMax: r.validatorMax,
+		RuleIntIn:  r.validatorIn,
 	}
 
-	return r.validatorsFor(rules, ruleMap)
+	return r.matchedValidatorsFor(rules, ruleMap)
 }
 
 // validatorMin is a generator of "min"-rule validator for ruleCond.
-// ValueValidatorFn accepts fieldValue of Kind int.
+// ValueValidatorFn accepts value of Kind int, and returns ErrIntMin or nil.
 func (r intValidator) validatorMin(ruleCond string) (ValueValidatorFn, error) {
 	minVal, err := strconv.Atoi(ruleCond)
 	if err != nil {
 		return nil, fmt.Errorf("strconv.Atoi(%s): %w", ruleCond, err)
 	}
 
-	return func(fieldValue reflect.Value) error {
-		v := fieldValue.Int()
+	return func(intValue reflect.Value) error {
+		v := intValue.Int()
 		if v < int64(minVal) {
 			return ErrIntMin
 		}
@@ -88,15 +95,15 @@ func (r intValidator) validatorMin(ruleCond string) (ValueValidatorFn, error) {
 }
 
 // validatorMax is a generator of "max"-rule validator for ruleCond.
-// ValueValidatorFn accepts fieldValue of Kind int.
+// ValueValidatorFn accepts value of Kind int, and returns ErrIntMax or nil.
 func (r intValidator) validatorMax(ruleCond string) (ValueValidatorFn, error) {
 	maxVal, err := strconv.Atoi(ruleCond)
 	if err != nil {
 		return nil, fmt.Errorf("strconv.Atoi(%s): %w", ruleCond, err)
 	}
 
-	return func(fieldValue reflect.Value) error {
-		v := fieldValue.Int()
+	return func(intValue reflect.Value) error {
+		v := intValue.Int()
 		if int64(maxVal) < v {
 			return ErrIntMax
 		}
@@ -106,7 +113,7 @@ func (r intValidator) validatorMax(ruleCond string) (ValueValidatorFn, error) {
 }
 
 // validatorIn is a generator of "in"-rule validator for ruleCond.
-// ValueValidatorFn accepts fieldValue of Kind int.
+// ValueValidatorFn accepts value of Kind int, and returns ErrIntIn or nil.
 func (r intValidator) validatorIn(ruleCond string) (ValueValidatorFn, error) {
 	const sep = ","
 
@@ -122,8 +129,8 @@ func (r intValidator) validatorIn(ruleCond string) (ValueValidatorFn, error) {
 		set[int64(n)] = struct{}{}
 	}
 
-	return func(fieldValue reflect.Value) error {
-		v := fieldValue.Int()
+	return func(intValue reflect.Value) error {
+		v := intValue.Int()
 		if _, exists := set[v]; !exists {
 			return ErrIntIn
 		}

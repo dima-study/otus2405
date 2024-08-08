@@ -52,7 +52,14 @@ func (r stringValidator) Kind() reflect.Kind {
 	return reflect.String
 }
 
+const (
+	RuleStringLen    = "len"
+	RuleStringRegexp = "regexp"
+	RuleStringIn     = "in"
+)
+
 // ValidatorsFor returns slice of value validators for provided rules.
+//
 // Returns ErrTypeNotSupported if fieldType is not supported by validator.
 func (r stringValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]ValueValidatorFn, error) {
 	// Check if validator supports specified struct field.
@@ -61,24 +68,24 @@ func (r stringValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]
 	}
 
 	ruleMap := map[string]genValidatorFn{
-		"len":    r.validatorLen,
-		"regexp": r.validatorRegexp,
-		"in":     r.validatorIn,
+		RuleStringLen:    r.validatorLen,
+		RuleStringRegexp: r.validatorRegexp,
+		RuleStringIn:     r.validatorIn,
 	}
 
-	return r.validatorsFor(rules, ruleMap)
+	return r.matchedValidatorsFor(rules, ruleMap)
 }
 
 // validatorLen is a generator of "len"-rule validator for ruleCond.
-// ValueValidatorFn accepts fieldValue of Kind string.
+// ValueValidatorFn accepts value of Kind string, and returns ErrStringLen or nil.
 func (r stringValidator) validatorLen(ruleCond string) (ValueValidatorFn, error) {
 	lenVal, err := strconv.Atoi(ruleCond)
 	if err != nil {
 		return nil, fmt.Errorf("strconv.Atoi(%s): %w", ruleCond, err)
 	}
 
-	return func(fieldValue reflect.Value) error {
-		s := fieldValue.String()
+	return func(stringValue reflect.Value) error {
+		s := stringValue.String()
 		if len(s) != lenVal {
 			return ErrStringLen
 		}
@@ -88,15 +95,15 @@ func (r stringValidator) validatorLen(ruleCond string) (ValueValidatorFn, error)
 }
 
 // validatorRegexp is a generator of "regexp"-rule validator for ruleCond.
-// ValueValidatorFn accepts fieldValue of Kind string.
+// ValueValidatorFn accepts value of Kind string, and returns ErrStringRegexp or nil.
 func (r stringValidator) validatorRegexp(ruleCond string) (ValueValidatorFn, error) {
 	re, err := regexp.Compile(ruleCond)
 	if err != nil {
 		return nil, fmt.Errorf("regexp.Compile(%s): %w", ruleCond, err)
 	}
 
-	return func(fieldValue reflect.Value) error {
-		s := fieldValue.String()
+	return func(stringValue reflect.Value) error {
+		s := stringValue.String()
 		if !re.MatchString(s) {
 			return ErrStringRegexp
 		}
@@ -106,7 +113,7 @@ func (r stringValidator) validatorRegexp(ruleCond string) (ValueValidatorFn, err
 }
 
 // validatorIn is a generator of "in"-rule validator for ruleCond.
-// ValueValidatorFn accepts fieldValue of Kind string.
+// ValueValidatorFn accepts value of Kind string, and returns ErrStringIn or nil.
 func (r stringValidator) validatorIn(ruleCond string) (ValueValidatorFn, error) {
 	const sep = ","
 
@@ -117,8 +124,8 @@ func (r stringValidator) validatorIn(ruleCond string) (ValueValidatorFn, error) 
 		set[s] = struct{}{}
 	}
 
-	return func(fieldValue reflect.Value) error {
-		v := fieldValue.String()
+	return func(stringValue reflect.Value) error {
+		v := stringValue.String()
 		if _, exists := set[v]; !exists {
 			return ErrStringIn
 		}

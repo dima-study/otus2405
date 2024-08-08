@@ -14,6 +14,8 @@ var (
 )
 
 type (
+	// ValueValidatorFn represents validator for the value.
+	// Returns error on failed validation.
 	ValueValidatorFn func(fieldValue reflect.Value) error
 
 	// Validator represents validator for some Type.
@@ -24,16 +26,16 @@ type (
 		// Supports indicate if validator supports fieldType for validation.
 		Supports(fieldType reflect.Type) bool
 
-		// Kind returns kind of validation.
+		// Kind returns kind of validator.
 		Kind() reflect.Kind
 
-		// ValidatorsFor tries to create slice of value validators for provided rules.
+		// ValidatorsFor returns value validators for provided rules.
 		// Returns ErrTypeNotSupported (possibly wrapped) if fieldType is not supported by validator.
 		ValidatorsFor(fieldType reflect.Type, rules string) ([]ValueValidatorFn, error)
 	}
 )
 
-// validatorRuleMatcher is a parser/matcher of validation rules (via validatorsFor).
+// validatorRuleMatcher is a parser/matcher of validation rules (via matchedValidatorsFor).
 // Parses rules in format of
 //
 //	<rule 1><ruleSep><rule 1 condition>[<unionSep><rule 2><ruleSep><rule 2 condition><unionSep>etc...]
@@ -45,9 +47,9 @@ type validatorRuleMatcher struct {
 // genValidatorFn reoresents generator function for value validator based on ruleCond.
 type genValidatorFn func(ruleCond string) (ValueValidatorFn, error)
 
-// validatorsFor returns slice of value validators for provided rules.
+// matchedValidatorsFor returns value validators for provided rules matched to ruleMap.
 // Could return (possibly wrapped) ErrValidatorIncorrectRuleSyntax or ErrValidatorRuleNotSupported.
-func (r validatorRuleMatcher) validatorsFor(rules string, ruleMap map[string]genValidatorFn) ([]ValueValidatorFn, error) {
+func (r validatorRuleMatcher) matchedValidatorsFor(rules string, ruleMap map[string]genValidatorFn) ([]ValueValidatorFn, error) {
 	vrules := strings.Split(rules, r.unionSep)
 	validators := make([]ValueValidatorFn, 0, len(vrules))
 
