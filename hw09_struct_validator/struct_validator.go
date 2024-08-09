@@ -196,10 +196,7 @@ func (r structValidator) getFieldsValidators(structType reflect.Type) ([]fieldVa
 		}
 
 		// Parse validation rules
-		rules, err := parseRules(rulesTag)
-		if err != nil {
-			return nil, fmt.Errorf("field %s of type %s: %w", field.Name, field.Type.Kind(), err)
-		}
+		rules := parseRules(rulesTag)
 
 		// Get type validators for specified field rules
 		fValidators, err := typeValidator.ValidatorsFor(field.Type, rules)
@@ -226,23 +223,21 @@ func (r structValidator) getFieldsValidators(structType reflect.Type) ([]fieldVa
 // parseRules tries to parse rulesTag (from "validation" field tag) into slice of Rules.
 // Parses rules in format of:
 //
-//	<rule 1 name>:<rule 1 condition>[|<rule 2 name>:<rule 2 condition>|etc...]
-//
-// Returns error ErrRuleIncorrectSyntax on incorrect syntax.
-func parseRules(rulesTag string) ([]Rule, error) {
+//	<rule 1 name>[:<rule 1 condition>[|<rule 2 name>:<rule 2 condition>|etc...]]
+func parseRules(rulesTag string) []Rule {
 	rulesList := strings.Split(rulesTag, "|")
 	rules := make([]Rule, 0, len(rulesList))
 
 	for _, rule := range rulesList {
 		name, condition, ok := strings.Cut(rule, ":")
 
-		// Must be in format "<name>:<condition>"
-		if !ok {
-			return nil, fmt.Errorf("%s: %w", rule, ErrRuleIncorrectSyntax)
+		// Must be in format "<name>:<condition>" or "<name>"
+		if ok {
+			rules = append(rules, Rule{name, condition})
+		} else {
+			rules = append(rules, Rule{name, ""})
 		}
-
-		rules = append(rules, Rule{name, condition})
 	}
 
-	return rules, nil
+	return rules
 }
