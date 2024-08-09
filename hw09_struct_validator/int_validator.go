@@ -9,28 +9,29 @@ import (
 )
 
 // IntValidator is a Validator with validation rules for int type.
-//
-// Supported validation rules:
-//
-//	min:number      - value must not be less than the number
-//	max:number      - value must not be great than the number
-//	in:n1,n2,...,nN - value must be in the set of numbers {n1,n2,...,nN}
-//
-// Supports union (|) of rules.
-// Example: `min:24|max:42` - value must not be at be less than 24
-// and not great than 42 at the same time.
 func IntValidator() Validator {
-	return intValidator{
-		validatorRuleMatcher: validatorRuleMatcher{
-			unionSep: "|",
-			ruleSep:  ":",
-		},
-	}
+	return intValidator{}
 }
 
-type intValidator struct {
-	validatorRuleMatcher
-}
+// # Supported validation rules.
+const (
+	// RuleIntMin validates value must not be less than the number.
+	//
+	//	min:number
+	RuleIntMin = "min"
+
+	// RuleIntMax validates value must not be great than the number.
+	//
+	//	max:number
+	RuleIntMax = "max"
+
+	// RuleIntIn validates value must be in the set of numbers {n1,n2,...,nN}
+	//
+	//	in:n1,n2,...,nN
+	RuleIntIn = "in"
+)
+
+type intValidator struct{}
 
 var (
 	ErrIntMin = errors.New("value less than min")
@@ -52,28 +53,44 @@ func (r intValidator) Kind() reflect.Kind {
 	return reflect.Int
 }
 
-const (
-	RuleIntMin = "min"
-	RuleIntMax = "max"
-	RuleIntIn  = "in"
-)
-
 // ValidatorsFor returns slice of value validators for provided rules.
 //
 // Returns ErrTypeNotSupported if fieldType is not supported by validator.
-func (r intValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]ValueValidatorFn, error) {
+func (r intValidator) ValidatorsFor(fieldType reflect.Type, rules []Rule) ([]ValueValidatorFn, error) {
 	// Check if validator supports specified struct field.
 	if !r.Supports(fieldType) {
 		return nil, ErrTypeNotSupported
 	}
 
-	ruleMap := map[string]genValidatorFn{
+	valueValidators := make([]ValueValidatorFn, 0, len(rules))
+
+	// Map supported rules to its validator generators.
+	ruleMap := map[string]func(ruleCond string) (ValueValidatorFn, error){
 		RuleIntMin: r.validatorMin,
 		RuleIntMax: r.validatorMax,
 		RuleIntIn:  r.validatorIn,
 	}
 
-	return r.matchedValidatorsFor(rules, ruleMap)
+	// For each rule...
+	for _, rule := range rules {
+		// ...check if rule is supported
+		fn, exists := ruleMap[rule.Name]
+		if fn == nil || !exists {
+			// Value validator not found for the rule
+			return nil, fmt.Errorf("%s(%s): %w", rule.Name, rule.Condition, ErrRuleNotSupported)
+		}
+
+		// Generate value validator for the rule
+		valueValidator, err := fn(rule.Condition)
+		if err != nil {
+			// Error while generate value validator.
+			return nil, fmt.Errorf("%s(%s): %w: %w", rule.Name, rule.Condition, ErrRuleInvalidCondition, err)
+		}
+
+		valueValidators = append(valueValidators, valueValidator)
+	}
+
+	return valueValidators, nil
 }
 
 // validatorMin is a generator of "min"-rule validator for ruleCond.

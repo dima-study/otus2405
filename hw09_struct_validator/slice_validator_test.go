@@ -59,20 +59,39 @@ func Test_sliceValidator_ValidatorsFor(t *testing.T) {
 	require.True(t, ok, "field must be found")
 
 	t.Run("success", func(t *testing.T) {
-		validators, err := v.ValidatorsFor(structField.Type, `len:2|in:aa,bb,cc|regexp:^[^0-9]{2}$`)
+		validators, err := v.ValidatorsFor(
+			structField.Type,
+			[]Rule{
+				{RuleStringLen, "2"},
+				{RuleStringIn, "aa,bb,cc"},
+				{RuleStringRegexp, "^[^0-9]{2}$"},
+			},
+		)
 		require.Nil(t, err, "err must be nil")
 		require.Len(t, validators, 1, "must be 1 validator")
 	})
 
 	t.Run("failed not supported", func(t *testing.T) {
-		validators, err := v.ValidatorsFor(structField.Type, `lEn:2|iN:aa,bb,cc|reGexp:^[^0-9]{2}$`)
-		require.ErrorIs(t, err, ErrValidatorRuleNotSupported, "err is ErrValidatorRuleNotSupported")
+		validators, err := v.ValidatorsFor(
+			structField.Type,
+			[]Rule{
+				{"lEn", "2"},
+				{"iN", "aa,bb,cc"},
+				{"reGexp", "^[^0-9]{2}$"},
+			},
+		)
+		require.ErrorIs(t, err, ErrRuleNotSupported, "err is ErrValidatorRuleNotSupported")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 
-	t.Run("failed incorrect syntax", func(t *testing.T) {
-		validators, err := v.ValidatorsFor(structField.Type, `lEn=2`)
-		require.ErrorIs(t, err, ErrValidatorIncorrectRuleSyntax, "err is ErrValidatorIncorrectRuleSyntax")
+	t.Run("failed invalid rule condition", func(t *testing.T) {
+		validators, err := v.ValidatorsFor(
+			structField.Type,
+			[]Rule{
+				{RuleStringLen, "abc"},
+			},
+		)
+		require.ErrorIs(t, err, ErrRuleInvalidCondition, "err is ErrRuleInvalidCondition")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 }
@@ -90,7 +109,14 @@ func Test_sliceValidator_validatorSlice(t *testing.T) {
 	structField, ok := sT.FieldByName("field")
 	require.True(t, ok, "field must be found")
 
-	fieldValidators, err := v.ValidatorsFor(structField.Type, `len:2|in:a,1,aa,bb,cc,12,ddd|regexp:^[^0-9]+$`)
+	fieldValidators, err := v.ValidatorsFor(
+		structField.Type,
+		[]Rule{
+			{RuleStringLen, "2"},
+			{RuleStringIn, "a,1,aa,bb,cc,12,ddd"},
+			{RuleStringRegexp, "^[^0-9]+$"},
+		},
+	)
 	require.Nil(t, err, "err must be nil")
 	require.Len(t, fieldValidators, 1, "must be 1 validator")
 

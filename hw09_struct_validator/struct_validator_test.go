@@ -67,7 +67,7 @@ func Test_structValidator_ValidatorsFor(t *testing.T) {
 		}{}
 
 		sT := reflect.TypeOf(s)
-		validators, err := v.ValidatorsFor(sT, RuleStructNested)
+		validators, err := v.ValidatorsFor(sT, []Rule{{RuleStructNested, ""}})
 
 		require.Nil(t, err, "err must be nil")
 		require.Len(t, validators, 1, "must be 1 validator")
@@ -82,7 +82,7 @@ func Test_structValidator_ValidatorsFor(t *testing.T) {
 		}{}
 
 		sT := reflect.TypeOf(s)
-		validators, err := v.ValidatorsFor(sT, RuleStructNested)
+		validators, err := v.ValidatorsFor(sT, []Rule{{RuleStructNested, ""}})
 
 		require.Nil(t, err, "err must be nil")
 		require.Len(t, validators, 1, "must be 1 validator")
@@ -97,10 +97,10 @@ func Test_structValidator_ValidatorsFor(t *testing.T) {
 		}{}
 
 		sT := reflect.TypeOf(s)
-		validators, err := v.ValidatorsFor(sT, RuleStructNested)
+		validators, err := v.ValidatorsFor(sT, []Rule{{RuleStructNested, ""}})
 
 		require.ErrorIs(t, err, ErrStructNested, "err is ErrStructNested")
-		require.ErrorIs(t, err, ErrValidatorRuleNotSupported, "err is ErrValidatorRuleNotSupported")
+		require.ErrorIs(t, err, ErrRuleNotSupported, "err is ErrValidatorRuleNotSupported")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 
@@ -113,10 +113,10 @@ func Test_structValidator_ValidatorsFor(t *testing.T) {
 		}{}
 
 		sT := reflect.TypeOf(s)
-		validators, err := v.ValidatorsFor(sT, RuleStructNested)
+		validators, err := v.ValidatorsFor(sT, []Rule{{RuleStructNested, ""}})
 
 		require.ErrorIs(t, err, ErrStructNested, "err is ErrStructNested")
-		require.ErrorIs(t, err, ErrValidatorIncorrectRuleSyntax, "err is ErrValidatorIncorrectRuleSyntax")
+		require.ErrorIs(t, err, ErrRuleIncorrectSyntax, "err is ErrValidatorIncorrectRuleSyntax")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 
@@ -126,7 +126,7 @@ func Test_structValidator_ValidatorsFor(t *testing.T) {
 		}{}
 
 		sT := reflect.TypeOf(s)
-		validators, err := v.ValidatorsFor(sT, RuleStructNested)
+		validators, err := v.ValidatorsFor(sT, []Rule{{RuleStructNested, ""}})
 
 		require.ErrorIs(t, err, ErrStructNested, "err is ErrStructNested")
 		require.ErrorIs(t, err, ErrTypeNotSupported, "err is ErrTypeNotSupported")
@@ -157,7 +157,7 @@ func Test_structValidator_validatorNested(t *testing.T) {
 
 	sT := reflect.TypeOf(s)
 
-	fieldValidators, err := v.ValidatorsFor(sT, RuleStructNested)
+	fieldValidators, err := v.ValidatorsFor(sT, []Rule{{RuleStructNested, ""}})
 	require.Nil(t, err, "err must be nil")
 	require.Len(t, fieldValidators, 1, "must be 1 validator")
 

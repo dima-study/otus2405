@@ -55,7 +55,7 @@ func (r sliceValidator) Kind() reflect.Kind {
 //
 // Returns ErrTypeNotSupported if sliceType is not supported by validator.
 // Could return (possibly wrapped) ErrSliceNested.
-func (r sliceValidator) ValidatorsFor(sliceType reflect.Type, rules string) ([]ValueValidatorFn, error) {
+func (r sliceValidator) ValidatorsFor(sliceType reflect.Type, rules []Rule) ([]ValueValidatorFn, error) {
 	// Check if validator supports specified struct field.
 	if !r.Supports(sliceType) {
 		return nil, ErrTypeNotSupported

@@ -53,20 +53,39 @@ func Test_intValidator_ValidatorsFor(t *testing.T) {
 	require.True(t, ok, "field must be found")
 
 	t.Run("success", func(t *testing.T) {
-		validators, err := v.ValidatorsFor(structField.Type, `max:42|in:42,24,33|min:24`)
+		validators, err := v.ValidatorsFor(
+			structField.Type,
+			[]Rule{
+				{RuleIntMax, "42"},
+				{RuleIntIn, "42,24,33"},
+				{RuleIntMin, "24"},
+			},
+		)
 		require.Nil(t, err, "err must be nil")
 		require.Len(t, validators, 3, "must be 3 validators")
 	})
 
 	t.Run("failed not supported", func(t *testing.T) {
-		validators, err := v.ValidatorsFor(structField.Type, `maX:42|In:42,24,33|mIn:24`)
-		require.ErrorIs(t, err, ErrValidatorRuleNotSupported, "err is ErrValidatorRuleNotSupported")
+		validators, err := v.ValidatorsFor(
+			structField.Type,
+			[]Rule{
+				{"maX", "42"},
+				{"In", "42,24,33"},
+				{"mIn", "24"},
+			},
+		)
+		require.ErrorIs(t, err, ErrRuleNotSupported, "err is ErrValidatorRuleNotSupported")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 
-	t.Run("failed incorrect syntax", func(t *testing.T) {
-		validators, err := v.ValidatorsFor(structField.Type, `maX=42`)
-		require.ErrorIs(t, err, ErrValidatorIncorrectRuleSyntax, "err is ErrValidatorIncorrectRuleSyntax")
+	t.Run("failed invalid rule condition", func(t *testing.T) {
+		validators, err := v.ValidatorsFor(
+			structField.Type,
+			[]Rule{
+				{RuleIntMax, "abc"},
+			},
+		)
+		require.ErrorIs(t, err, ErrRuleInvalidCondition, "err is ErrRuleInvalidCondition")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 }

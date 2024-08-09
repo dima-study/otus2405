@@ -10,27 +10,29 @@ import (
 )
 
 // StringValidator is a Validator with validation rules for string type.
-//
-// Supported validation rules:
-//
-//	len:number      - string length must be equal to the number
-//	regexp:re       - string must match the regular expression re
-//	in:s1,s2,...,sN - string must be in the set of strings {s1,s2,...,sN}
-//
-// Supports union (|) of rules.
-// Example: "len:42|re:^\\d+$" - string length must be 42 and contain only didgits.
 func StringValidator() Validator {
-	return stringValidator{
-		validatorRuleMatcher: validatorRuleMatcher{
-			unionSep: "|",
-			ruleSep:  ":",
-		},
-	}
+	return stringValidator{}
 }
 
-type stringValidator struct {
-	validatorRuleMatcher
-}
+// # Supported validation rules.
+const (
+	// RuleStringLen validates string length must be equal to the number
+	//
+	//	len:number
+	RuleStringLen = "len"
+
+	// RuleStringRegexp validates string must match the regular expression re
+	//
+	//	regexp:re
+	RuleStringRegexp = "regexp"
+
+	// RuleStringIn validates string must be in the set of strings {s1,s2,...,sN}
+	//
+	//	in:s1,s2,...,sN
+	RuleStringIn = "in"
+)
+
+type stringValidator struct{}
 
 var (
 	ErrStringLen    = errors.New("string length not equal to len")
@@ -52,28 +54,44 @@ func (r stringValidator) Kind() reflect.Kind {
 	return reflect.String
 }
 
-const (
-	RuleStringLen    = "len"
-	RuleStringRegexp = "regexp"
-	RuleStringIn     = "in"
-)
-
 // ValidatorsFor returns slice of value validators for provided rules.
 //
 // Returns ErrTypeNotSupported if fieldType is not supported by validator.
-func (r stringValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]ValueValidatorFn, error) {
+func (r stringValidator) ValidatorsFor(fieldType reflect.Type, rules []Rule) ([]ValueValidatorFn, error) {
 	// Check if validator supports specified struct field.
 	if !r.Supports(fieldType) {
 		return nil, ErrTypeNotSupported
 	}
 
-	ruleMap := map[string]genValidatorFn{
+	valueValidators := make([]ValueValidatorFn, 0, len(rules))
+
+	// Map supported rules to its validator generators.
+	ruleMap := map[string]func(ruleCond string) (ValueValidatorFn, error){
 		RuleStringLen:    r.validatorLen,
 		RuleStringRegexp: r.validatorRegexp,
 		RuleStringIn:     r.validatorIn,
 	}
 
-	return r.matchedValidatorsFor(rules, ruleMap)
+	// For each rule...
+	for _, rule := range rules {
+		// ...check if rule is supported
+		fn, exists := ruleMap[rule.Name]
+		if fn == nil || !exists {
+			// Value validator not found for the rule
+			return nil, fmt.Errorf("%s(%s): %w", rule.Name, rule.Condition, ErrRuleNotSupported)
+		}
+
+		// Generate value validator for the rule
+		valueValidator, err := fn(rule.Condition)
+		if err != nil {
+			// Error while generate value validator.
+			return nil, fmt.Errorf("%s(%s): %w: %w", rule.Name, rule.Condition, ErrRuleInvalidCondition, err)
+		}
+
+		valueValidators = append(valueValidators, valueValidator)
+	}
+
+	return valueValidators, nil
 }
 
 // validatorLen is a generator of "len"-rule validator for ruleCond.
@@ -81,7 +99,7 @@ func (r stringValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]
 func (r stringValidator) validatorLen(ruleCond string) (ValueValidatorFn, error) {
 	lenVal, err := strconv.Atoi(ruleCond)
 	if err != nil {
-		return nil, fmt.Errorf("strconv.Atoi(%s): %w", ruleCond, err)
+		return nil, err
 	}
 
 	return func(stringValue reflect.Value) error {

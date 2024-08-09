@@ -52,20 +52,40 @@ func Test_stringValidator_ValidatorsFor(t *testing.T) {
 	require.True(t, ok, "field must be found")
 
 	t.Run("success", func(t *testing.T) {
-		validators, err := v.ValidatorsFor(structField.Type, `len:2|in:aa,bb,cc|regexp:^[^0-9]{2}$`)
+		validators, err := v.ValidatorsFor(
+			structField.Type,
+			[]Rule{
+				{RuleStringLen, "2"},
+				{RuleStringIn, "aa,bb,cc"},
+				{RuleStringRegexp, "^[^0-9]{2}$"},
+			},
+		)
 		require.Nil(t, err, "err must be nil")
 		require.Len(t, validators, 3, "must be 3 validators")
 	})
 
 	t.Run("failed not supported", func(t *testing.T) {
-		validators, err := v.ValidatorsFor(structField.Type, `lEn:2|iN:aa,bb,cc|reGexp:^[^0-9]{2}$`)
-		require.ErrorIs(t, err, ErrValidatorRuleNotSupported, "err is ErrValidatorRuleNotSupported")
+		validators, err := v.ValidatorsFor(
+			structField.Type,
+			[]Rule{
+				{"lEn", "2"},
+				{"iN", "aa,bb,cc"},
+				{"reGexp", "^[^0-9]{2}$"},
+			},
+		)
+		require.ErrorIs(t, err, ErrRuleNotSupported, "err is ErrValidatorRuleNotSupported")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 
-	t.Run("failed incorrect syntax", func(t *testing.T) {
-		validators, err := v.ValidatorsFor(structField.Type, `lEn=2`)
-		require.ErrorIs(t, err, ErrValidatorIncorrectRuleSyntax, "err is ErrValidatorIncorrectRuleSyntax")
+	t.Run("failed invalid rule condition", func(t *testing.T) {
+		validators, err := v.ValidatorsFor(
+			structField.Type,
+			[]Rule{
+				{RuleStringLen, "abc"},
+			},
+		)
+		t.Log(err)
+		require.ErrorIs(t, err, ErrRuleInvalidCondition, "err is ErrRuleInvalidCondition")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 }

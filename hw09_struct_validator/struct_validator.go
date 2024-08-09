@@ -11,11 +11,9 @@ import (
 //
 // Struct fields are being validated by its suitable validator based on "validate" field tag,
 // when it is provided and not empty.
-// "validate" field tag is being used to specify validation rules for the field.
 //
-// Supported validation rules:
-//
-//	nested - indicates that field value (which is type of struct) should be validated.
+// "validate" field tag is being used to specify validation rules for the public field.
+// Supports union (|) of rules.
 //
 // Argument validators should contains list of supported validators.
 func StructValidator(validators ...Validator) Validator {
@@ -29,6 +27,11 @@ func StructValidator(validators ...Validator) Validator {
 
 	return validator
 }
+
+// # Supported validation rules.
+//
+// RuleStructNested indicates that field value (which is type of struct) should be validated.
+const RuleStructNested = "nested"
 
 type structValidator struct {
 	supported map[reflect.Kind]Validator
@@ -50,31 +53,33 @@ func (r structValidator) Kind() reflect.Kind {
 	return reflect.Struct
 }
 
-const RuleStructNested = "nested"
-
 // ValidatorsFor returns value validators for provided rules.
 //
 // Returns ErrTypeNotSupported if stfieldType is not supported by validator.
 // Could return (possibly wrapped) ErrStructNested or ErrValidatorRuleNotSupported.
-func (r structValidator) ValidatorsFor(fieldType reflect.Type, rules string) ([]ValueValidatorFn, error) {
+func (r structValidator) ValidatorsFor(fieldType reflect.Type, rules []Rule) ([]ValueValidatorFn, error) {
 	// Check if validator supports specified struct field.
 	if !r.Supports(fieldType) {
 		return nil, ErrTypeNotSupported
 	}
 
-	switch rules {
-	case RuleStructNested:
-		fieldsValidator, err := r.validatorNested(fieldType)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %w", ErrStructNested, err)
+	valueValidators := make([]ValueValidatorFn, 0, len(rules))
+
+	for _, rule := range rules {
+		switch rule.Name {
+		case RuleStructNested:
+			valueValidator, err := r.validatorNested(fieldType)
+			if err != nil {
+				return nil, fmt.Errorf("%w: %w", ErrStructNested, err)
+			}
+
+			valueValidators = append(valueValidators, valueValidator)
+		default:
+			return nil, fmt.Errorf("%s(%s): %w", rule.Name, rule.Condition, ErrRuleNotSupported)
 		}
-		return []ValueValidatorFn{fieldsValidator}, nil
-	case "":
-		// Rule is empty - no validation needed
-		return nil, nil
-	default:
-		return nil, ErrValidatorRuleNotSupported
 	}
+
+	return valueValidators, nil
 }
 
 // validatorFor returns suitable validator for struct items type.
@@ -179,7 +184,7 @@ func (r structValidator) getFieldsValidators(structType reflect.Type) ([]fieldVa
 		}
 
 		// Validate field only if struct tag is provided.
-		tagRule, ok := field.Tag.Lookup(tagName)
+		rulesTag, ok := field.Tag.Lookup(tagName)
 		if !ok {
 			continue
 		}
@@ -190,8 +195,14 @@ func (r structValidator) getFieldsValidators(structType reflect.Type) ([]fieldVa
 			return nil, fmt.Errorf("field %s of type %s: %w", field.Name, field.Type.Kind(), ErrTypeNotSupported)
 		}
 
+		// Parse validation rules
+		rules, err := parseRules(rulesTag)
+		if err != nil {
+			return nil, fmt.Errorf("field %s of type %s: %w", field.Name, field.Type.Kind(), err)
+		}
+
 		// Get type validators for specified field rules
-		fValidators, err := typeValidator.ValidatorsFor(field.Type, tagRule)
+		fValidators, err := typeValidator.ValidatorsFor(field.Type, rules)
 		if err != nil {
 			return nil, fmt.Errorf("field %s of type %s: %w", field.Name, field.Type.Kind(), err)
 		}
@@ -210,4 +221,28 @@ func (r structValidator) getFieldsValidators(structType reflect.Type) ([]fieldVa
 	}
 
 	return validators, nil
+}
+
+// parseRules tries to parse rulesTag (from "validation" field tag) into slice of Rules.
+// Parses rules in format of:
+//
+//	<rule 1 name>:<rule 1 condition>[|<rule 2 name>:<rule 2 condition>|etc...]
+//
+// Returns error ErrRuleIncorrectSyntax on incorrect syntax.
+func parseRules(rulesTag string) ([]Rule, error) {
+	rulesList := strings.Split(rulesTag, "|")
+	rules := make([]Rule, 0, len(rulesList))
+
+	for _, rule := range rulesList {
+		name, condition, ok := strings.Cut(rule, ":")
+
+		// Must be in format "<name>:<condition>"
+		if !ok {
+			return nil, fmt.Errorf("%s: %w", rule, ErrRuleIncorrectSyntax)
+		}
+
+		rules = append(rules, Rule{name, condition})
+	}
+
+	return rules, nil
 }
