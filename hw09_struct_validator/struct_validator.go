@@ -84,7 +84,14 @@ func (r structValidator) ValidatorsFor(fieldType reflect.Type, rules []Rule) ([]
 
 // validatorFor returns suitable validator for struct items type.
 func (r structValidator) validatorFor(supportedType reflect.Type) Validator {
-	validator := r.supported[supportedType.Kind()]
+	validator, exists := r.supported[supportedType.Kind()]
+
+	// If struct validator not provided,
+	// then return current struct validator to validate structs.
+	if !exists && supportedType.Kind() == reflect.Struct {
+		return r
+	}
+
 	return validator
 }
 

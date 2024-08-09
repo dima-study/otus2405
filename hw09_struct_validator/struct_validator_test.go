@@ -104,7 +104,7 @@ func Test_structValidator_ValidatorsFor(t *testing.T) {
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 
-	t.Run("failed incorrect syntax", func(t *testing.T) {
+	t.Run("failed rule not supported", func(t *testing.T) {
 		s := struct {
 			S  string   `validate:"regexp=^\\d+$"`
 			Ss []string `validate:"len=3"`
@@ -115,8 +115,10 @@ func Test_structValidator_ValidatorsFor(t *testing.T) {
 		sT := reflect.TypeOf(s)
 		validators, err := v.ValidatorsFor(sT, []Rule{{RuleStructNested, ""}})
 
+		t.Log(err)
+
 		require.ErrorIs(t, err, ErrStructNested, "err is ErrStructNested")
-		require.ErrorIs(t, err, ErrRuleIncorrectSyntax, "err is ErrValidatorIncorrectRuleSyntax")
+		require.ErrorIs(t, err, ErrRuleNotSupported, "err is ErrRuleNotSupported")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 
@@ -147,17 +149,26 @@ func Test_structValidator_validatorNested(t *testing.T) {
 	v, ok := SV.(structValidator)
 	require.True(t, ok, "must be instance of structValidator")
 
-	type Struct struct {
+	type SubStruct struct {
 		S  string   `validate:"regexp:^\\d+$"`
 		Ss []string `validate:"len:3"`
 		I  int      `validate:"min:3"`
 		Ii []int    `validate:"max:3"`
+	}
+
+	type Struct struct {
+		S  string    `validate:"regexp:^\\d+$"`
+		Ss []string  `validate:"len:3"`
+		I  int       `validate:"min:3"`
+		Ii []int     `validate:"max:3"`
+		St SubStruct `valdate:"nested"`
 	}
 	s := Struct{}
 
 	sT := reflect.TypeOf(s)
 
 	fieldValidators, err := v.ValidatorsFor(sT, []Rule{{RuleStructNested, ""}})
+	t.Log(err)
 	require.Nil(t, err, "err must be nil")
 	require.Len(t, fieldValidators, 1, "must be 1 validator")
 
@@ -176,6 +187,10 @@ func Test_structValidator_validatorNested(t *testing.T) {
 					Ss: []string{"aaa", "bbb", "ccc"},
 					I:  3,
 					Ii: []int{1, 2, 3},
+					St: SubStruct{
+						S: "4321",
+						I: 5,
+					},
 				},
 				err:    false,
 				numErr: 0,
