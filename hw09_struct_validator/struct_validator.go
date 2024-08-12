@@ -10,9 +10,9 @@ import (
 // StructValidator is a Validator for struct fields.
 //
 // Struct fields are being validated by its suitable validator based on "validate" field tag,
-// when it is provided and not empty.
+// when it is provided.
 //
-// "validate" field tag is being used to specify validation rules for the public field.
+// "validate" field tag is being used to specify validation rules for the public fields.
 // Supports union (|) of rules.
 //
 // Argument validators should contains list of supported validators.
@@ -56,7 +56,7 @@ func (r structValidator) Kind() reflect.Kind {
 // ValidatorsFor returns value validators for provided rules.
 //
 // Returns ErrTypeNotSupported if stfieldType is not supported by validator.
-// Could return (possibly wrapped) ErrStructNested or ErrValidatorRuleNotSupported.
+// Could return (possibly wrapped) ErrStructNested or ErrRuleNotSupported.
 func (r structValidator) ValidatorsFor(fieldType reflect.Type, rules []Rule) ([]ValueValidatorFn, error) {
 	// Check if validator supports specified struct field.
 	if !r.Supports(fieldType) {
@@ -235,6 +235,7 @@ func parseRules(rulesTag string) []Rule {
 	rulesList := strings.Split(rulesTag, "|")
 	rules := make([]Rule, 0, len(rulesList))
 
+	// TODO: unique rules
 	for _, rule := range rulesList {
 		name, condition, ok := strings.Cut(rule, ":")
 

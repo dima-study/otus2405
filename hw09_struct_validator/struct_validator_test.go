@@ -100,7 +100,7 @@ func Test_structValidator_ValidatorsFor(t *testing.T) {
 		validators, err := v.ValidatorsFor(sT, []Rule{{RuleStructNested, ""}})
 
 		require.ErrorIs(t, err, ErrStructNested, "err is ErrStructNested")
-		require.ErrorIs(t, err, ErrRuleNotSupported, "err is ErrValidatorRuleNotSupported")
+		require.ErrorIs(t, err, ErrRuleNotSupported, "err is ErrRuleNotSupported")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 

@@ -74,7 +74,7 @@ func Test_intValidator_ValidatorsFor(t *testing.T) {
 				{"mIn", "24"},
 			},
 		)
-		require.ErrorIs(t, err, ErrRuleNotSupported, "err is ErrValidatorRuleNotSupported")
+		require.ErrorIs(t, err, ErrRuleNotSupported, "err is ErrRuleNotSupported")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 

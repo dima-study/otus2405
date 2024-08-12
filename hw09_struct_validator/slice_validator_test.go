@@ -80,7 +80,7 @@ func Test_sliceValidator_ValidatorsFor(t *testing.T) {
 				{"reGexp", "^[^0-9]{2}$"},
 			},
 		)
-		require.ErrorIs(t, err, ErrRuleNotSupported, "err is ErrValidatorRuleNotSupported")
+		require.ErrorIs(t, err, ErrRuleNotSupported, "err is ErrRuleNotSupported")
 		require.Len(t, validators, 0, "must be 0 validators")
 	})
 
