@@ -9,7 +9,7 @@ import (
 
 // StructValidator is a Validator for struct fields.
 //
-// Struct fields are being validated by its suitable validator based on "validate" field tag,
+// Struct fields are being validated by its suitable validators based on "validate" field tag,
 // when it is provided.
 //
 // "validate" field tag is being used to specify validation rules for the public fields.
@@ -44,9 +44,9 @@ func (r structValidator) String() string {
 	return "structValidator"
 }
 
-// Supports returns true if fieldType is struct.
-func (r structValidator) Supports(fieldType reflect.Type) bool {
-	return fieldType.Kind() == reflect.Struct
+// Supports returns true if t is type of struct.
+func (r structValidator) Supports(t reflect.Type) bool {
+	return t.Kind() == reflect.Struct
 }
 
 func (r structValidator) Kind() reflect.Kind {
@@ -55,11 +55,11 @@ func (r structValidator) Kind() reflect.Kind {
 
 // ValidatorsFor returns value validators for provided rules.
 //
-// Returns ErrTypeNotSupported if stfieldType is not supported by validator.
+// Returns ErrTypeNotSupported if structType is not supported by validator.
 // Could return (possibly wrapped) ErrStructNested or ErrRuleNotSupported.
-func (r structValidator) ValidatorsFor(fieldType reflect.Type, rules []Rule) ([]ValueValidatorFn, error) {
-	// Check if validator supports specified struct field.
-	if !r.Supports(fieldType) {
+func (r structValidator) ValidatorsFor(structType reflect.Type, rules []Rule) ([]ValueValidatorFn, error) {
+	// Check if validator supports provided type.
+	if !r.Supports(structType) {
 		return nil, ErrTypeNotSupported
 	}
 
@@ -68,7 +68,7 @@ func (r structValidator) ValidatorsFor(fieldType reflect.Type, rules []Rule) ([]
 	for _, rule := range rules {
 		switch rule.Name {
 		case RuleStructNested:
-			valueValidator, err := r.validatorNested(fieldType)
+			valueValidator, err := r.validatorNested(structType)
 			if err != nil {
 				return nil, fmt.Errorf("%w: %w", ErrStructNested, err)
 			}

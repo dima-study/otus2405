@@ -34,16 +34,16 @@ func (r sliceValidator) String() string {
 	return "sliceValidator"
 }
 
-// Supports returns true if fieldType is slice and validator supports
+// Supports returns true if t is type of slice and validator supports
 // validation for slice items type.
-func (r sliceValidator) Supports(fieldType reflect.Type) bool {
-	// Check if structField is type of slice.
-	if fieldType.Kind() != reflect.Slice {
+func (r sliceValidator) Supports(t reflect.Type) bool {
+	// Check if t is type of slice.
+	if t.Kind() != reflect.Slice {
 		return false
 	}
 
 	// Check if slice item type is supported for validation.
-	_, exists := r.supported[fieldType.Elem().Kind()]
+	_, exists := r.supported[t.Elem().Kind()]
 	return exists
 }
 
@@ -56,18 +56,19 @@ func (r sliceValidator) Kind() reflect.Kind {
 // Returns ErrTypeNotSupported if sliceType is not supported by validator.
 // Could return (possibly wrapped) ErrSliceNested.
 func (r sliceValidator) ValidatorsFor(sliceType reflect.Type, rules []Rule) ([]ValueValidatorFn, error) {
-	// Check if validator supports specified struct field.
+	// Check if validator supports provided type.
 	if !r.Supports(sliceType) {
 		return nil, ErrTypeNotSupported
 	}
 
 	itemsType := sliceType.Elem()
 
-	// Suitable validator for structField slice items.
+	// Suitable validator for slice items.
 	itemsTypeValidator := r.validatorFor(itemsType)
-	// Check if validator exists for provided structField.
+
+	// Check if validator exists for provided items type.
 	if itemsTypeValidator == nil {
-		// Actually must never come here!
+		// Must NEVER come here!
 		return nil, ErrTypeNotSupported
 	}
 

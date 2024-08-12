@@ -44,9 +44,9 @@ func (r intValidator) String() string {
 	return "intValidator"
 }
 
-// Supports returns true if fieldType is type of int.
-func (r intValidator) Supports(fieldType reflect.Type) bool {
-	return fieldType.Kind() == reflect.Int
+// Supports returns true if t is type of int.
+func (r intValidator) Supports(t reflect.Type) bool {
+	return t.Kind() == reflect.Int
 }
 
 func (r intValidator) Kind() reflect.Kind {
@@ -55,10 +55,10 @@ func (r intValidator) Kind() reflect.Kind {
 
 // ValidatorsFor returns slice of value validators for provided rules.
 //
-// Returns ErrTypeNotSupported if fieldType is not supported by validator.
-func (r intValidator) ValidatorsFor(fieldType reflect.Type, rules []Rule) ([]ValueValidatorFn, error) {
-	// Check if validator supports specified struct field.
-	if !r.Supports(fieldType) {
+// Returns ErrTypeNotSupported if intType is not supported by validator.
+func (r intValidator) ValidatorsFor(intType reflect.Type, rules []Rule) ([]ValueValidatorFn, error) {
+	// Check if validator supports provided type.
+	if !r.Supports(intType) {
 		return nil, ErrTypeNotSupported
 	}
 

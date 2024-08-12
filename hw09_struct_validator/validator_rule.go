@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	ErrTypeNotSupported = errors.New("field type is not supported for validation")
+	ErrTypeNotSupported = errors.New("type is not supported for validation")
 
 	ErrRuleIncorrectSyntax  = errors.New("incorrect rule syntax")
 	ErrRuleInvalidCondition = errors.New("invalid rule condition")
@@ -16,7 +16,7 @@ var (
 type (
 	// ValueValidatorFn represents validator for the value.
 	// Returns error on failed validation.
-	ValueValidatorFn func(fieldValue reflect.Value) error
+	ValueValidatorFn func(value reflect.Value) error
 
 	// Rule represents validation rule.
 	Rule struct {
@@ -29,8 +29,8 @@ type (
 		// String should return validator name.
 		String() string
 
-		// Supports indicate if validator supports fieldType for validation.
-		Supports(fieldType reflect.Type) bool
+		// Supports indicate if validator supports type t for validation.
+		Supports(t reflect.Type) bool
 
 		// Kind returns kind of validator.
 		Kind() reflect.Kind
