@@ -6,24 +6,51 @@ import (
 	"reflect"
 )
 
-type ValidationError struct {
-	Field string
-	Err   error
+// DefaultValidators contains validators supported by Validate.
+// Validators could be added or removed on depend.
+//
+// By default next validators are supported:
+//   - IntValidator
+//   - StringValidator
+//   - SliceValidator for ints and strings
+var DefaultValidators = []Validator{
+	IntValidator(),
+	StringValidator(),
+	SliceValidator(IntValidator(), StringValidator()),
 }
 
-type ValidationErrors []ValidationError
+// ValidationError is an alias to FieldError of StructValidator.
+type ValidationError = FieldError
 
-var ErrNotStruct = errors.New("v must be type of struct")
+// ValidationErrors is an alias to StructErrors of StructValidator.
+type ValidationErrors = StructErrors
 
-func (v ValidationErrors) Error() string {
-	panic("implement me")
-}
+// Validate tries to validate fields for v, where v is type of struct.
+func Validate(v any) error {
+	// Create sruct validator with default validators.
+	validator := StructValidator(DefaultValidators...)
 
-func Validate(v interface{}) error {
 	vType := reflect.TypeOf(v)
-	if vType.Kind() != reflect.Struct {
-		return fmt.Errorf("v type Kind is %s, %w", vType.Kind(), ErrNotStruct)
+
+	// Get struct validators
+	validators, err := validator.ValidatorsFor(vType, []Rule{{Name: RuleStructNested}})
+	if err != nil {
+		return fmt.Errorf("struct validator: %w", err)
 	}
-	// Place your code here.
+
+	vValue := reflect.ValueOf(v)
+
+	err = validators[0](vValue)
+	if err != nil {
+		var structErr ValidationErrors
+		switch {
+		case errors.As(err, &structErr):
+			return structErr
+		default:
+			return err
+		}
+	}
+
+	// Success validation.
 	return nil
 }
