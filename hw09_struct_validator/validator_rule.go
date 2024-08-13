@@ -8,7 +8,6 @@ import (
 var (
 	ErrTypeNotSupported = errors.New("type is not supported for validation")
 
-	ErrRuleIncorrectSyntax  = errors.New("incorrect rule syntax")
 	ErrRuleInvalidCondition = errors.New("invalid rule condition")
 	ErrRuleNotSupported     = errors.New("rule not supported")
 )
