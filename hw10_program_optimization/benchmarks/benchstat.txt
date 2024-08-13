@@ -1,0 +1,15 @@
+goos: linux
+goarch: amd64
+pkg: github.com/dima-study/otus2405/hw10_program_optimization
+cpu: Intel(R) Core(TM) i5-6440HQ CPU @ 2.60GHz
+              │ benchmarks/bench_old.txt │      benchmarks/bench_new.txt       │
+              │          sec/op          │   sec/op     vs base                │
+GetDomainStat                809.1m ± 3%   232.6m ± 8%  -71.26% (p=0.000 n=10)
+
+              │ benchmarks/bench_old.txt │       benchmarks/bench_new.txt       │
+              │           B/op           │     B/op      vs base                │
+GetDomainStat              308.17Mi ± 0%   21.45Mi ± 0%  -93.04% (p=0.000 n=10)
+
+              │ benchmarks/bench_old.txt │      benchmarks/bench_new.txt       │
+              │        allocs/op         │  allocs/op   vs base                │
+GetDomainStat               3045.4k ± 0%   301.0k ± 0%  -90.11% (p=0.000 n=10)
