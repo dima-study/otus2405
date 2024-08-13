@@ -89,9 +89,8 @@ func (r sliceValidator) validatorFor(itemsType reflect.Type) Validator {
 
 // SliceItemError represents validation error Err for item in slice at Index position.
 type SliceItemError struct {
-	Parent string
-	Index  int
-	Err    error
+	Index int
+	Err   error
 }
 
 func (e SliceItemError) Error() string {
