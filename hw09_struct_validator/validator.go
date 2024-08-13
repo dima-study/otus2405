@@ -1,17 +1,41 @@
 package hw09structvalidator
 
-type ValidationError struct {
-	Field string
-	Err   error
-}
+import (
+	"errors"
+	"reflect"
+)
 
-type ValidationErrors []ValidationError
+var (
+	ErrTypeNotSupported = errors.New("type is not supported for validation")
 
-func (v ValidationErrors) Error() string {
-	panic("implement me")
-}
+	ErrRuleInvalidCondition = errors.New("invalid rule condition")
+	ErrRuleNotSupported     = errors.New("rule not supported")
+)
 
-func Validate(v interface{}) error {
-	// Place your code here.
-	return nil
-}
+type (
+	// ValueValidatorFn represents validator for the value.
+	// Returns error on failed validation.
+	ValueValidatorFn func(value reflect.Value) error
+
+	// Rule represents validation rule.
+	Rule struct {
+		Name      string
+		Condition string
+	}
+
+	// Validator represents validator for some Type.
+	Validator interface {
+		// String should return validator name.
+		String() string
+
+		// Supports indicate if validator supports type t for validation.
+		Supports(t reflect.Type) bool
+
+		// Kind returns kind of validator.
+		Kind() reflect.Kind
+
+		// ValidatorsFor returns value validators for provided rules.
+		// Returns ErrTypeNotSupported (possibly wrapped) if fieldType is not supported by validator.
+		ValidatorsFor(fieldType reflect.Type, rules []Rule) ([]ValueValidatorFn, error)
+	}
+)
