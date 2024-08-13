@@ -2,7 +2,10 @@ module github.com/dima-study/otus2405/hw10_program_optimization
 
 go 1.22
 
-require github.com/stretchr/testify v1.7.0
+require (
+	github.com/goccy/go-json v0.10.3
+	github.com/stretchr/testify v1.7.0
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
