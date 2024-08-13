@@ -2,55 +2,40 @@ package hw09structvalidator
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 )
 
-// DefaultValidators contains validators supported by Validate.
-// Validators could be added or removed on depend.
-//
-// By default next validators are supported:
-//   - IntValidator
-//   - StringValidator
-//   - SliceValidator for ints and strings
-var DefaultValidators = []Validator{
-	IntValidator(),
-	StringValidator(),
-	SliceValidator(IntValidator(), StringValidator()),
-}
+var (
+	ErrTypeNotSupported = errors.New("type is not supported for validation")
 
-// ValidationError is an alias to FieldError of StructValidator.
-type ValidationError = FieldError
+	ErrRuleInvalidCondition = errors.New("invalid rule condition")
+	ErrRuleNotSupported     = errors.New("rule not supported")
+)
 
-// ValidationErrors is an alias to StructErrors of StructValidator.
-type ValidationErrors = StructErrors
+type (
+	// ValueValidatorFn represents validator for the value.
+	// Returns error on failed validation.
+	ValueValidatorFn func(value reflect.Value) error
 
-// Validate tries to validate fields for v, where v is type of struct.
-func Validate(v any) error {
-	// Create sruct validator with default validators.
-	validator := StructValidator(DefaultValidators...)
-
-	vType := reflect.TypeOf(v)
-
-	// Get struct validators
-	validators, err := validator.ValidatorsFor(vType, []Rule{{Name: RuleStructNested}})
-	if err != nil {
-		return fmt.Errorf("struct validator: %w", err)
+	// Rule represents validation rule.
+	Rule struct {
+		Name      string
+		Condition string
 	}
 
-	vValue := reflect.ValueOf(v)
+	// Validator represents validator for some Type.
+	Validator interface {
+		// String should return validator name.
+		String() string
 
-	err = validators[0](vValue)
-	if err != nil {
-		var structErr ValidationErrors
-		switch {
-		case errors.As(err, &structErr):
-			return structErr
-		default:
-			return err
-		}
+		// Supports indicate if validator supports type t for validation.
+		Supports(t reflect.Type) bool
+
+		// Kind returns kind of validator.
+		Kind() reflect.Kind
+
+		// ValidatorsFor returns value validators for provided rules.
+		// Returns ErrTypeNotSupported (possibly wrapped) if fieldType is not supported by validator.
+		ValidatorsFor(fieldType reflect.Type, rules []Rule) ([]ValueValidatorFn, error)
 	}
-
-	// Success validation.
-	return nil
-}
+)
