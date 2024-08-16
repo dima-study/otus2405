@@ -1,4 +1,4 @@
-module github.com/fixme_my_friend/hw11_telnet_client
+module github.com/dima-study/otus2405/hw11_telnet_client
 
 go 1.22
 
