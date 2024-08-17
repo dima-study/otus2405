@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"regexp"
@@ -43,7 +44,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	hostport := host + ":" + port
+	// Proper concatenation for IPv6.
+	hostport := net.JoinHostPort(host, port)
 	telnet := NewTelnetClient(hostport, *timeout, os.Stdin, os.Stdout)
 
 	fmt.Fprintf(os.Stderr, "...Trying %s\n", hostport)
