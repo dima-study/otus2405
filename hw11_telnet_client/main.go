@@ -95,6 +95,7 @@ func main() {
 
 // receive does telnet.Receive and returns error-channel.
 // Any occurred error will be send to the channel.
+// Nil error in channel means the remote peer closed the connection.
 func receive(telnet TelnetClient) <-chan error {
 	c := make(chan error, 1)
 	go func() {
@@ -108,6 +109,7 @@ func receive(telnet TelnetClient) <-chan error {
 
 // receive does telnet.Send and returns error-channel.
 // Any occurred error will be send to the channel.
+// Nil error in channel means the communication is finished because of EOF.
 func send(telnet TelnetClient) <-chan error {
 	c := make(chan error, 1)
 
