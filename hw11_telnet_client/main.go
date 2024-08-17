@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"regexp"
 	"time"
 )
 
@@ -37,12 +36,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Get host and port, check that port contains only digits.
+	// Get host and port
 	host, port := flag.Arg(0), flag.Arg(1)
-	if ok, err := regexp.Match(`^\d+$`, []byte(port)); !ok || err != nil {
-		flag.Usage()
-		os.Exit(1)
-	}
 
 	// Proper concatenation for IPv6.
 	hostport := net.JoinHostPort(host, port)
