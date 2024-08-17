@@ -30,6 +30,12 @@ func main() {
 	timeout := flag.Duration("timeout", 10*time.Second, "connection timeout")
 	flag.Parse()
 
+	// Must be 2 args.
+	if flag.NArg() != 2 {
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	// Get host and port, check that port contains only digits.
 	host, port := flag.Arg(0), flag.Arg(1)
 	if ok, err := regexp.Match(`^\d+$`, []byte(port)); !ok || err != nil {
