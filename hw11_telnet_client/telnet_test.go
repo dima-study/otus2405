@@ -63,3 +63,43 @@ func TestTelnetClient(t *testing.T) {
 		wg.Wait()
 	})
 }
+
+func TestTelnetClient_Errors(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:")
+	require.NoError(t, err)
+	defer func() { require.NoError(t, l.Close()) }()
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	c := make(chan struct{})
+	go func() {
+		defer wg.Done()
+		defer close(c)
+
+		client := NewTelnetClient(l.Addr().String(), 1*time.Second, nil, nil)
+
+		require.ErrorIs(t, client.Send(), ErrNoConnection, "must not send on not opened")
+		require.ErrorIs(t, client.Receive(), ErrNoConnection, "must not send on not opened")
+
+		require.NoError(t, client.Connect(), "must connect")
+
+		require.ErrorIs(t, client.Connect(), ErrAlreadyConnected, "must not connect twice: ErrAlreadyConnected")
+
+		defer func() {
+			require.NoError(t, client.Close())
+
+			require.ErrorIs(t, client.Close(), ErrNoConnection, "must not close twice")
+			require.ErrorIs(t, client.Send(), ErrNoConnection, "must not send on closed")
+			require.ErrorIs(t, client.Receive(), ErrNoConnection, "must not send on closed")
+		}()
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		<-c
+	}()
+
+	wg.Wait()
+}
