@@ -37,7 +37,7 @@ type telnetClient struct {
 	out     io.Writer
 
 	conn net.Conn
-	mx   sync.RWMutex
+	mx   sync.RWMutex // mx is a mutex-guard for the conn
 }
 
 // Connect tries to make a connection to telnetClient address.
