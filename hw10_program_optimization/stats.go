@@ -1,66 +1,43 @@
 package hw10programoptimization
 
 import (
-	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
-	"regexp"
 	"strings"
 )
-
-type User struct {
-	ID       int
-	Name     string
-	Username string
-	Email    string
-	Phone    string
-	Password string
-	Address  string
-}
 
 type DomainStat map[string]int
 
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-	u, err := getUsers(r)
-	if err != nil {
-		return nil, fmt.Errorf("get users error: %w", err)
-	}
-	return countDomains(u, domain)
+	ur := NewEmailReader(r)
+	return countDomains(ur, domain)
 }
 
-type users [100_000]User
+func countDomains(r *EmailReader, domain string) (DomainStat, error) {
+	// Add dot and lower-case domain to check the suffix of email later
+	domain = "." + strings.ToLower(domain)
 
-func getUsers(r io.Reader) (result users, err error) {
-	content, err := io.ReadAll(r)
-	if err != nil {
-		return
-	}
-
-	lines := strings.Split(string(content), "\n")
-	for i, line := range lines {
-		var user User
-		if err = json.Unmarshal([]byte(line), &user); err != nil {
-			return
-		}
-		result[i] = user
-	}
-	return
-}
-
-func countDomains(u users, domain string) (DomainStat, error) {
 	result := make(DomainStat)
-
-	for _, user := range u {
-		matched, err := regexp.Match("\\."+domain, []byte(user.Email))
+	for {
+		// Try to read email
+		email, err := r.NextEmail()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
 			return nil, err
 		}
 
-		if matched {
-			num := result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]
-			num++
-			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])] = num
+		// Check if the email domain match to the asked domain.
+		if email != "" && strings.HasSuffix(email, domain) {
+			idx := strings.Index(email, "@")
+			if idx >= 0 {
+				// Ignore '@'
+				result[email[idx+1:]]++
+			}
 		}
 	}
+
 	return result, nil
 }

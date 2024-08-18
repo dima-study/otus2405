@@ -1,0 +1,16 @@
+goos: linux
+goarch: amd64
+pkg: github.com/dima-study/otus2405/hw10_program_optimization
+cpu: Intel(R) Core(TM) i5-6440HQ CPU @ 2.60GHz
+BenchmarkGetDomainStat 	       5	 224334563 ns/op	22487168 B/op	  301046 allocs/op
+BenchmarkGetDomainStat 	       5	 234559738 ns/op	22487099 B/op	  301046 allocs/op
+BenchmarkGetDomainStat 	       5	 224945161 ns/op	22486974 B/op	  301045 allocs/op
+BenchmarkGetDomainStat 	       5	 220268813 ns/op	22487515 B/op	  301048 allocs/op
+BenchmarkGetDomainStat 	       5	 219293326 ns/op	22487667 B/op	  301049 allocs/op
+BenchmarkGetDomainStat 	       5	 245907577 ns/op	22487556 B/op	  301048 allocs/op
+BenchmarkGetDomainStat 	       4	 261471201 ns/op	22489256 B/op	  301045 allocs/op
+BenchmarkGetDomainStat 	       4	 251115798 ns/op	22489672 B/op	  301047 allocs/op
+BenchmarkGetDomainStat 	       5	 230569042 ns/op	22487432 B/op	  301047 allocs/op
+BenchmarkGetDomainStat 	       5	 249262730 ns/op	22487473 B/op	  301047 allocs/op
+PASS
+ok  	github.com/dima-study/otus2405/hw10_program_optimization	22.729s
