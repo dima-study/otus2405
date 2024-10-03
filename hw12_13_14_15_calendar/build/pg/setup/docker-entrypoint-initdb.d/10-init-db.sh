@@ -1,0 +1,22 @@
+#!/bin/bash
+
+PG_USER=${PG_USER:-calendar}
+PG_DB=${PG_DB:-calendar}
+PG_PSWD=${PG_PSWD:-calendar}
+
+set -e
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    CREATE DATABASE $PG_DB;
+EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$PG_DB" <<-EOSQL
+    CREATE SCHEMA $PG_DB;
+
+    CREATE USER $PG_USER;
+
+    GRANT ALL PRIVILEGES ON SCHEMA $PG_DB TO $PG_USER;
+    GRANT ALL PRIVILEGES ON DATABASE $PG_DB TO $PG_USER;
+
+    ALTER USER $PG_USER WITH PASSWORD '$PG_PSWD';
+EOSQL
