@@ -3,59 +3,164 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
+	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/app"
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/server/http"
-	memorystorage "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage/memory"
+	"github.com/ilyakaznacheev/cleanenv"
+
+	helloBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/hello"
+	internalhttp "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http"
+	helloHttp "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/app/hello"
+	httpMiddleware "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/middleware"
+	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/web"
+	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/logger"
+	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
+	memoryStorage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event/memory"
+	pgStorage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event/pg"
 )
+
+const serviceName = "calendar"
+
+func main() {
+	initFlag()
+
+	logger, levelVar := logger.New(os.Stdout, slog.LevelInfo, serviceName)
+
+	ctx := context.Background()
+	if err := run(ctx, logger, levelVar); err != nil {
+		logger.Error(
+			"failed to run",
+			slog.String("error", err.Error()),
+		)
+	}
+}
 
 var configFile string
 
-func init() {
-	flag.StringVar(&configFile, "config", "/etc/calendar/config.toml", "Path to configuration file")
-}
+func initFlag() {
+	flag.StringVar(&configFile, "config", "", "Path to configuration file")
 
-func main() {
-	flag.Parse()
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
 
-	if flag.Arg(0) == "version" {
-		printVersion()
-		return
+		var cfg Config
+		help, _ := cleanenv.GetDescription(&cfg, nil)
+		fmt.Fprintf(flag.CommandLine.Output(), "\n%s\n", help)
 	}
 
-	config := NewConfig()
-	logg := logger.New(config.Logger.Level)
+	flag.Parse()
+}
 
-	storage := memorystorage.New()
-	calendar := app.New(logg, storage)
+func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) error {
+	logger.Info(
+		"starting service",
+		slog.Group(
+			"build",
+			slog.String("release", release),
+			slog.String("date", buildDate),
+			slog.String("gitHash", gitHash),
+		),
+	)
 
-	server := internalhttp.NewServer(logg, calendar)
+	logger.Info(
+		"read config",
+		slog.String("file", configFile),
+	)
+	cfg, err := ReadConfig(configFile)
+	if err != nil {
+		return err
+	}
 
-	ctx, cancel := signal.NotifyContext(context.Background(),
-		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-	defer cancel()
+	logger.Info(
+		"set logger level",
+		slog.String("from", levelVar.Level().String()),
+		slog.String("to", cfg.Log.Level.String()),
+	)
+	levelVar.Set(cfg.Log.Level)
 
+	logger.Info(
+		"init storage",
+		slog.String("storage", cfg.EventStorageType.String()),
+	)
+	storage, storageDoneFn, err := initStorage(cfg)
+	if err != nil {
+		return err
+	}
+	defer storageDoneFn()
+	_ = storage
+
+	helloBusinessApp := helloBusiness.NewApp(logger)
+	helloHTTPApp := helloHttp.NewApp(helloBusinessApp, logger)
+
+	webMux := web.NewMux(
+		logger,
+		helloHTTPApp,
+	)
+
+	listenAddr := cfg.HTTP.Host + ":" + cfg.HTTP.Port
+	server := http.Server{
+		Addr: listenAddr,
+		Handler: internalhttp.ApplyMiddlewares(
+			webMux,
+			httpMiddleware.LogRequest(logger.WithGroup("http-request")),
+		),
+		ErrorLog:     slog.NewLogLogger(logger.Handler(), cfg.Log.Level),
+		ReadTimeout:  cfg.HTTP.ReadTimeout,
+		WriteTimeout: cfg.HTTP.WriteTimeout,
+	}
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
+
+	serverErrors := make(chan error, 1)
 	go func() {
-		<-ctx.Done()
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-		defer cancel()
-
-		if err := server.Stop(ctx); err != nil {
-			logg.Error("failed to stop http server: " + err.Error())
-		}
+		logger.Info(
+			"start server",
+			slog.String("listen", listenAddr),
+		)
+		serverErrors <- server.ListenAndServe()
 	}()
 
-	logg.Info("calendar is running...")
+	select {
+	case err := <-serverErrors:
+		return fmt.Errorf("server error: %w", err)
 
-	if err := server.Start(ctx); err != nil {
-		logg.Error("failed to start http server: " + err.Error())
-		cancel()
-		os.Exit(1) //nolint:gocritic
+	case sig := <-shutdown:
+		logger.Info(
+			"shutdown",
+			slog.String("signal", sig.String()),
+		)
+
+		ctx, cancel := context.WithTimeout(ctx, cfg.ShutdownTimeout)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			server.Close()
+			return fmt.Errorf("could not stop server: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func initStorage(cfg Config) (model.Storage, func() error, error) {
+	switch cfg.EventStorageType {
+	case EventStorageTypeMemory:
+		storage := memoryStorage.NewStorage()
+		return storage, func() error { return nil }, nil
+	case EventStorageTypePg:
+		storage, err := pgStorage.NewStorage(cfg.EventStoragePg.DataSource)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return storage, storage.Close, nil
+	default:
+		return nil, nil, fmt.Errorf("storage '%s' is not supported", cfg.EventStorageType)
 	}
 }
