@@ -1,20 +1,24 @@
 package logger
 
-import "fmt"
+import (
+	"io"
+	"log/slog"
+)
 
-type Logger struct { // TODO
+// New создаёт новый логгер с заданным уровнем логирования и параметром serviceName.
+// Возвращает сам логгер и levelVar для динамического изменения уровня логирования логгера.
+func New(w io.Writer, level slog.Level, serviceName string) (*slog.Logger, *slog.LevelVar) {
+	levelVar := &slog.LevelVar{}
+	levelVar.Set(level)
+
+	h := slog.NewTextHandler(w, &slog.HandlerOptions{
+		AddSource:   false,
+		Level:       levelVar,
+		ReplaceAttr: nil,
+	})
+
+	logger := slog.New(h)
+	logger = logger.With(slog.String("service", serviceName))
+
+	return logger, levelVar
 }
-
-func New(level string) *Logger {
-	return &Logger{}
-}
-
-func (l Logger) Info(msg string) {
-	fmt.Println(msg)
-}
-
-func (l Logger) Error(msg string) {
-	// TODO
-}
-
-// TODO

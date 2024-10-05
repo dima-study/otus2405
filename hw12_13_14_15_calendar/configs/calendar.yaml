@@ -1,0 +1,12 @@
+shutdown_timeout: 5s
+
+http:
+  port: "8081"
+  host: localhost
+  read_timeout: 5s
+  write_timeout: 15s
+
+logger:
+  level: info
+
+event_storage: memory
