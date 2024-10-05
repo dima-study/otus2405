@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -102,7 +103,7 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 		helloHTTPApp,
 	)
 
-	listenAddr := cfg.HTTP.Host + ":" + cfg.HTTP.Port
+	listenAddr := net.JoinHostPort(cfg.HTTP.Host, cfg.HTTP.Port)
 	server := http.Server{
 		Addr: listenAddr,
 		Handler: internalhttp.ApplyMiddlewares(
