@@ -98,10 +98,13 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 	helloBusinessApp := helloBusiness.NewApp(logger)
 	helloHTTPApp := helloHttp.NewApp(helloBusinessApp, logger)
 
-	webMux := web.NewMux(
+	webMux, err := web.NewMux(
 		logger,
 		helloHTTPApp,
 	)
+	if err != nil {
+		return err
+	}
 
 	listenAddr := net.JoinHostPort(cfg.HTTP.Host, cfg.HTTP.Port)
 	server := http.Server{

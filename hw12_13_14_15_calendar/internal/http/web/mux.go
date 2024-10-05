@@ -1,12 +1,14 @@
 package web
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 )
 
 type RoutesAdder interface {
-	AddRoutes(mux *Mux)
+	AddRoutes(mux *Mux) error
 }
 
 // Mux - web-мультиплексер - надстройка над http-мультиплексером для обработки http запросов.
@@ -16,15 +18,18 @@ type Mux struct {
 }
 
 // NewMux создаёт новый web-мультиплексер.
-func NewMux(logger *slog.Logger, routesAdder RoutesAdder) *Mux {
+func NewMux(logger *slog.Logger, routesAdder RoutesAdder) (*Mux, error) {
 	mux := Mux{
 		logger: logger,
 		mux:    http.NewServeMux(),
 	}
 
-	routesAdder.AddRoutes(&mux)
+	err := routesAdder.AddRoutes(&mux)
+	if err != nil {
+		return nil, err
+	}
 
-	return &mux
+	return &mux, nil
 }
 
 func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -32,11 +37,16 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handle создаёт http.Handle для определённого пути и метода запроса.
-func (m *Mux) Handle(method string, version string, path string, handlerFn HandlerFunc) {
-	routePath := path
+func (m *Mux) Handle(method string, version string, path string, handlerFn HandlerFunc) error {
 	if version != "" {
-		routePath = "/" + version + path
+		var err error
+		path, err = url.JoinPath("/", version, path)
+		if err != nil {
+			return fmt.Errorf("url.JoinPath: %w", err)
+		}
 	}
 
-	m.mux.Handle(method+" "+routePath, m.Handler(handlerFn))
+	m.mux.Handle(method+" "+path, m.Handler(handlerFn))
+
+	return nil
 }

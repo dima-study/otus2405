@@ -5,6 +5,7 @@
 package hello
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -27,8 +28,13 @@ func NewApp(business Business, logger *slog.Logger) *App {
 	}
 }
 
-func (a *App) AddRoutes(mux *web.Mux) {
+func (a *App) AddRoutes(mux *web.Mux) error {
 	a.logger.Debug("add routes")
 
-	mux.Handle(http.MethodGet, "", "/hello", a.HandleHello)
+	err := mux.Handle(http.MethodGet, "", "/hello", a.HandleHello)
+	if err != nil {
+		return fmt.Errorf("mux.Handle method=%s version=%s path=%s", http.MethodGet, "", "/hello")
+	}
+
+	return nil
 }
