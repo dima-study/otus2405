@@ -125,13 +125,17 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 		WriteTimeout: cfg.HTTP.WriteTimeout,
 	}
 
+	grpcLogInterceptors := grpcInterceptor.LogRequest(logger.WithGroup("grpc-request"))
 	grpcAuthInterceptors := grpcInterceptor.Auth(logger.WithGroup("grpc-auth"))
 
 	grpcServer := grpc.NewServer(
+		grpcLogInterceptors.UnknownServiceHandler,
 		grpc.ChainUnaryInterceptor(
+			grpcLogInterceptors.UnaryInterceptor,
 			grpcAuthInterceptors.UnaryInterceptor,
 		),
 		grpc.ChainStreamInterceptor(
+			grpcLogInterceptors.StreamInterceptor,
 			grpcAuthInterceptors.StreamInterceptor,
 		),
 	)
