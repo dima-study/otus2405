@@ -13,9 +13,9 @@ import (
 
 	"github.com/ilyakaznacheev/cleanenv"
 
+	helloAPI "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/api/hello"
 	helloBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/hello"
 	internalhttp "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http"
-	helloHttp "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/app/hello"
 	httpMiddleware "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/middleware"
 	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/web"
 	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/logger"
@@ -96,11 +96,11 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 	_ = storage
 
 	helloBusinessApp := helloBusiness.NewApp(logger)
-	helloHTTPApp := helloHttp.NewApp(helloBusinessApp, logger)
+	helloAPIApp := helloAPI.NewApp(helloBusinessApp, logger)
 
 	webMux, err := web.NewMux(
 		logger,
-		helloHTTPApp,
+		helloAPIApp,
 	)
 	if err != nil {
 		return err
