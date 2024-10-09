@@ -12,8 +12,12 @@ import (
 	"syscall"
 
 	"github.com/ilyakaznacheev/cleanenv"
+	"google.golang.org/grpc"
 
+	calendarAPI "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/api/calendar"
 	helloAPI "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/api/hello"
+	pbEventV1 "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/api/proto/event/v1"
+	calendarBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/calendar"
 	helloBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/hello"
 	internalhttp "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http"
 	httpMiddleware "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/middleware"
@@ -93,7 +97,8 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 		return err
 	}
 	defer storageDoneFn()
-	_ = storage
+
+	calendarBusinessApp := calendarBusiness.NewApp(logger, storage)
 
 	helloBusinessApp := helloBusiness.NewApp(logger)
 	helloAPIApp := helloAPI.NewApp(helloBusinessApp, logger)
@@ -117,6 +122,15 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 		ReadTimeout:  cfg.HTTP.ReadTimeout,
 		WriteTimeout: cfg.HTTP.WriteTimeout,
 	}
+
+	grpcServer := grpc.NewServer()
+	grpcLstn, err := net.Listen("tcp", ":12345")
+	if err != nil {
+		return err
+	}
+
+	pbEventV1.RegisterEventServiceServer(grpcServer, calendarAPI.NewApp(calendarBusinessApp, logger))
+	grpcServer.Serve(grpcLstn)
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
