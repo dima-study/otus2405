@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -19,6 +20,7 @@ import (
 	pbEventV1 "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/api/proto/event/v1"
 	calendarBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/calendar"
 	helloBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/hello"
+	grpcInterceptor "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/grpc/interceptor"
 	internalhttp "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http"
 	httpMiddleware "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/middleware"
 	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/web"
@@ -123,25 +125,41 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 		WriteTimeout: cfg.HTTP.WriteTimeout,
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcAuthInterceptors := grpcInterceptor.Auth(logger.WithGroup("grpc-auth"))
+
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			grpcAuthInterceptors.UnaryInterceptor,
+		),
+		grpc.ChainStreamInterceptor(
+			grpcAuthInterceptors.StreamInterceptor,
+		),
+	)
 	grpcLstn, err := net.Listen("tcp", ":12345")
 	if err != nil {
 		return err
 	}
 
 	pbEventV1.RegisterEventServiceServer(grpcServer, calendarAPI.NewApp(calendarBusinessApp, logger))
-	grpcServer.Serve(grpcLstn)
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 
-	serverErrors := make(chan error, 1)
+	serverErrors := make(chan error, 2)
 	go func() {
 		logger.Info(
-			"start server",
+			"start http server",
 			slog.String("listen", listenAddr),
 		)
 		serverErrors <- server.ListenAndServe()
+	}()
+
+	go func() {
+		logger.Info(
+			"start grpc server",
+			slog.String("listen", listenAddr),
+		)
+		serverErrors <- grpcServer.Serve(grpcLstn)
 	}()
 
 	select {
@@ -157,10 +175,37 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 		ctx, cancel := context.WithTimeout(ctx, cfg.ShutdownTimeout)
 		defer cancel()
 
-		if err := server.Shutdown(ctx); err != nil {
-			server.Close()
-			return fmt.Errorf("could not stop server: %w", err)
-		}
+		errsCh := make(chan error, 2)
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+
+			if err := server.Shutdown(ctx); err != nil {
+				server.Close()
+				errsCh <- fmt.Errorf("could not stop http server: %w", err)
+			}
+		}()
+
+		go func() {
+			defer wg.Done()
+
+			done := make(chan struct{}, 1)
+			go func() {
+				grpcServer.GracefulStop()
+				done <- struct{}{}
+			}()
+
+			select {
+			case <-ctx.Done():
+				grpcServer.Stop()
+				errsCh <- fmt.Errorf("could not stop server: %w", ctx.Err())
+			case <-done:
+			}
+		}()
+
+		wg.Wait()
 	}
 
 	return nil
