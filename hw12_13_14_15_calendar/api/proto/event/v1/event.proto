@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package event.v1;
+
+option go_package = "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/gen/proto/v1";
+
+import "patch/go.proto";
+import "google/protobuf/timestamp.proto";
+
+message Event {
+  string event_id = 1 [ (go.field) = { name: 'EventID' } ];
+
+  google.protobuf.Timestamp start_at = 2;
+  google.protobuf.Timestamp end_at = 3;
+
+  string title = 4 ;
+  string description = 5;
+
+  uint32 notify_before = 6;
+}
