@@ -15,6 +15,28 @@ help:
 
 
 #
+# GENERATE
+#
+.PHONY: generate
+generate: generate-proto
+	@# Help: Do generate sources
+
+
+.PHONY: generate-proto
+generate-proto: install-deps-protoc
+	@# Help: Generate from proto files
+	protoc \
+		-Iapi/vendor/proto/alta/protopatch/ \
+		-Iapi/vendor/proto/googleapis/googleapis \
+		-Iapi/proto \
+		--go-patch_out=plugin=go,paths=source_relative:internal/api/proto \
+		--go-patch_out=plugin=go-grpc,paths=source_relative,require_unimplemented_servers=true:internal/api/proto \
+		--go-patch_out=plugin=grpc-gateway,paths=source_relative:internal/api/proto \
+		--openapiv2_out=output_format=yaml,allow_merge=true,merge_file_name=api,json_names_for_fields=false,openapi_naming_strategy=simple:api/openapi-spec \
+		./api/proto/event/v1/*.proto
+
+
+#
 # BUILD
 #
 
