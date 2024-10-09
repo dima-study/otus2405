@@ -1,5 +1,5 @@
-ifneq (,$(wildcard ./.envmake))
-    include .envmake
+ifneq (,$(wildcard ./.env.mk))
+    include .env.mk
     export
 endif
 
