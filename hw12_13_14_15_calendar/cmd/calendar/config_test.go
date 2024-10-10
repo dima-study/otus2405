@@ -30,6 +30,10 @@ func Test_ParseConfig(t *testing.T) {
     read_timeout: 1s
     write_timeout: 1m
 
+  grpc:
+    port: "54321"
+    host: lolo
+
   logger:
     level: debug
 
@@ -45,6 +49,10 @@ func Test_ParseConfig(t *testing.T) {
 					Port:         "12345",
 					ReadTimeout:  time.Second,
 					WriteTimeout: time.Minute,
+				},
+				GRPC: GRPCConfig{
+					Host: "lolo",
+					Port: "54321",
 				},
 				Log: LoggerConfig{
 					Level: slog.LevelDebug,
@@ -67,6 +75,10 @@ func Test_ParseConfig(t *testing.T) {
     read_timeout: 15s
     write_timeout: 15s
 
+  grpc:
+    port: "54321"
+    host: lolo
+
   logger:
     level: debug
 
@@ -77,10 +89,13 @@ func Test_ParseConfig(t *testing.T) {
 			init: func() {
 				os.Setenv("CALENDAR_SHUTDOWN_TIMEOUT", "1s")
 
-				os.Setenv("CALENDAR_HTTP_HOST", "some.host")
+				os.Setenv("CALENDAR_HTTP_HOST", "some.http.host")
 				os.Setenv("CALENDAR_HTTP_PORT", "54321")
 				os.Setenv("CALENDAR_HTTP_READ_TIMEOUT", "1s")
 				os.Setenv("CALENDAR_HTTP_WRITE_TIMEOUT", "1m")
+
+				os.Setenv("CALENDAR_GRPC_HOST", "some.grpc.host")
+				os.Setenv("CALENDAR_GRPC_PORT", "12345")
 
 				os.Setenv("CANELDAR_LOG_LEVEL", "error")
 
@@ -91,11 +106,16 @@ func Test_ParseConfig(t *testing.T) {
 				ShutdownTimeout: time.Second,
 
 				HTTP: HTTPConfig{
-					Host:         "some.host",
+					Host:         "some.http.host",
 					Port:         "54321",
 					ReadTimeout:  time.Second,
 					WriteTimeout: time.Minute,
 				},
+				GRPC: GRPCConfig{
+					Host: "some.grpc.host",
+					Port: "12345",
+				},
+
 				Log: LoggerConfig{
 					Level: slog.LevelError,
 				},
@@ -117,6 +137,10 @@ func Test_ParseConfig(t *testing.T) {
 					Port:         "8081",
 					ReadTimeout:  5 * time.Second,
 					WriteTimeout: 15 * time.Second,
+				},
+				GRPC: GRPCConfig{
+					Host: "localhost",
+					Port: "50051",
 				},
 				Log: LoggerConfig{
 					Level: slog.LevelInfo,
@@ -199,6 +223,9 @@ func Test_ParseConfig(t *testing.T) {
 			os.Unsetenv("CALENDAR_HTTP_HOST")
 			os.Unsetenv("CALENDAR_HTTP_READ_TIMEOUT")
 			os.Unsetenv("CALENDAR_HTTP_WRITE_TIMEOUT")
+
+			os.Unsetenv("CALENDAR_GRPC_PORT")
+			os.Unsetenv("CALENDAR_GRPC_HOST")
 
 			os.Unsetenv("CANELDAR_LOG_LEVEL")
 
