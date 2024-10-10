@@ -5,12 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
-	"net"
-	"net/http"
 	"os"
-	"os/signal"
-	"sync"
-	"syscall"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	"google.golang.org/grpc"
@@ -20,9 +15,6 @@ import (
 	pbEventV1 "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/api/proto/event/v1"
 	calendarBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/calendar"
 	helloBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/hello"
-	grpcInterceptor "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/grpc/interceptor"
-	internalhttp "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http"
-	httpMiddleware "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/middleware"
 	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/web"
 	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/logger"
 	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
@@ -100,119 +92,41 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 	}
 	defer storageDoneFn()
 
-	calendarBusinessApp := calendarBusiness.NewApp(logger, storage)
+	logger.Info("init app")
 
-	helloBusinessApp := helloBusiness.NewApp(logger)
-	helloAPIApp := helloAPI.NewApp(helloBusinessApp, logger)
+	helloBusinessApp := helloBusiness.NewApp(logger.With(slog.String("comp", "business-hello")))
+	calendarBusinessApp := calendarBusiness.NewApp(logger.With(slog.String("comp", "business-calendar")), storage)
+
+	helloAPIApp := helloAPI.NewApp(helloBusinessApp, logger.With(slog.String("comp", "api-hello")))
+	calendarAPIApp := calendarAPI.NewApp(calendarBusinessApp, logger.With(slog.String("comp", "api-calendar")))
 
 	webMux, err := web.NewMux(
-		logger,
+		logger.With(slog.String("comp", "web-mux")),
 		helloAPIApp,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("can't create web-mux: %w", err)
 	}
 
-	listenAddr := net.JoinHostPort(cfg.HTTP.Host, cfg.HTTP.Port)
-	server := http.Server{
-		Addr: listenAddr,
-		Handler: internalhttp.ApplyMiddlewares(
-			webMux,
-			httpMiddleware.LogRequest(logger.WithGroup("http-request")),
-		),
-		ErrorLog:     slog.NewLogLogger(logger.Handler(), cfg.Log.Level),
-		ReadTimeout:  cfg.HTTP.ReadTimeout,
-		WriteTimeout: cfg.HTTP.WriteTimeout,
-	}
-
-	grpcLogInterceptors := grpcInterceptor.LogRequest(logger.WithGroup("grpc-request"))
-	grpcAuthInterceptors := grpcInterceptor.Auth(logger.WithGroup("grpc-auth"))
-
-	grpcServer := grpc.NewServer(
-		grpcLogInterceptors.UnknownServiceHandler,
-		grpc.ChainUnaryInterceptor(
-			grpcLogInterceptors.UnaryInterceptor,
-			grpcAuthInterceptors.UnaryInterceptor,
-		),
-		grpc.ChainStreamInterceptor(
-			grpcLogInterceptors.StreamInterceptor,
-			grpcAuthInterceptors.StreamInterceptor,
-		),
+	httpStart, httpStop := createHTTPServer(
+		logger,
+		cfg,
+		webMux,
 	)
-	grpcLstn, err := net.Listen("tcp", ":12345")
-	if err != nil {
-		return err
-	}
 
-	pbEventV1.RegisterEventServiceServer(grpcServer, calendarAPI.NewApp(calendarBusinessApp, logger))
+	grpcRegisterFn := grpcServiceRegisterFunc(func(s *grpc.Server) {
+		pbEventV1.RegisterEventServiceServer(s, calendarAPIApp)
+	})
 
-	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
+	grpcStart, grpcStop := createGRPCServer(logger, cfg, grpcRegisterFn)
 
-	serverErrors := make(chan error, 2)
-	go func() {
-		logger.Info(
-			"start http server",
-			slog.String("listen", listenAddr),
-		)
-		serverErrors <- server.ListenAndServe()
-	}()
-
-	go func() {
-		logger.Info(
-			"start grpc server",
-			slog.String("listen", listenAddr),
-		)
-		serverErrors <- grpcServer.Serve(grpcLstn)
-	}()
-
-	select {
-	case err := <-serverErrors:
-		return fmt.Errorf("server error: %w", err)
-
-	case sig := <-shutdown:
-		logger.Info(
-			"shutdown",
-			slog.String("signal", sig.String()),
-		)
-
-		ctx, cancel := context.WithTimeout(ctx, cfg.ShutdownTimeout)
-		defer cancel()
-
-		errsCh := make(chan error, 2)
-		wg := sync.WaitGroup{}
-		wg.Add(2)
-
-		go func() {
-			defer wg.Done()
-
-			if err := server.Shutdown(ctx); err != nil {
-				server.Close()
-				errsCh <- fmt.Errorf("could not stop http server: %w", err)
-			}
-		}()
-
-		go func() {
-			defer wg.Done()
-
-			done := make(chan struct{}, 1)
-			go func() {
-				grpcServer.GracefulStop()
-				done <- struct{}{}
-			}()
-
-			select {
-			case <-ctx.Done():
-				grpcServer.Stop()
-				errsCh <- fmt.Errorf("could not stop server: %w", ctx.Err())
-			case <-done:
-			}
-		}()
-
-		wg.Wait()
-	}
-
-	return nil
+	return startAndShutdown(
+		ctx,
+		logger,
+		cfg,
+		[]startServerFunc{httpStart, grpcStart},
+		[]stopServerFunc{httpStop, grpcStop},
+	)
 }
 
 func initStorage(cfg Config) (model.Storage, func() error, error) {
