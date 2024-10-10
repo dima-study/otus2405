@@ -52,7 +52,7 @@ func LogRequest(logger *slog.Logger) LogRequestServerOptions {
 		},
 	)
 
-	opts.UnknownServiceHandler = grpc.UnknownServiceHandler(func(srv any, stream grpc.ServerStream) error {
+	opts.UnknownServiceHandler = grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
 		method, _ := grpc.MethodFromServerStream(stream)
 		return status.Error(codes.Unimplemented, fmt.Sprintf("uknown method %s", method))
 	})

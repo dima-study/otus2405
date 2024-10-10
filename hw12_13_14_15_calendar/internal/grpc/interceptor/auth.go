@@ -23,7 +23,7 @@ func Auth(logger *slog.Logger) AuthServerOptions {
 	opts := AuthServerOptions{}
 
 	opts.UnaryInterceptor = grpc.UnaryServerInterceptor(
-		func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+		func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 			next := func(ctx context.Context) (any, error) {
 				return handler(ctx, req)
 			}
@@ -35,8 +35,8 @@ func Auth(logger *slog.Logger) AuthServerOptions {
 	)
 
 	opts.StreamInterceptor = grpc.StreamServerInterceptor(
-		func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-			next := func(ctx context.Context) (any, error) {
+		func(srv any, stream grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+			next := func(_ context.Context) (any, error) {
 				return nil, handler(srv, stream)
 			}
 

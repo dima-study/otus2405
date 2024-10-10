@@ -11,13 +11,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func unsetEnv() {
+	os.Unsetenv("CALENDAR_SHUTDOWN_TIMEOUT")
+
+	os.Unsetenv("CALENDAR_HTTP_PORT")
+	os.Unsetenv("CALENDAR_HTTP_HOST")
+	os.Unsetenv("CALENDAR_HTTP_READ_TIMEOUT")
+	os.Unsetenv("CALENDAR_HTTP_WRITE_TIMEOUT")
+
+	os.Unsetenv("CALENDAR_GRPC_PORT")
+	os.Unsetenv("CALENDAR_GRPC_HOST")
+
+	os.Unsetenv("CANELDAR_LOG_LEVEL")
+
+	os.Unsetenv("CALENDAR_EVENT_STORAGE")
+	os.Unsetenv("CALENDAR_EVENT_STORAGE_PG_DATASOURCE")
+}
+
 func Test_ParseConfig(t *testing.T) {
 	tests := []struct {
-		name      string
-		cfg       string
-		init      func()
-		want      Config
-		wantError bool
+		name string
+		cfg  string
+		init func()
+		want Config
 	}{
 		{
 			name: "full config",
@@ -62,7 +78,6 @@ func Test_ParseConfig(t *testing.T) {
 					DataSource: "pg://data?source",
 				},
 			},
-			wantError: false,
 		},
 		{
 			name: "overwrite by env",
@@ -124,7 +139,6 @@ func Test_ParseConfig(t *testing.T) {
 					DataSource: "pg://data?source",
 				},
 			},
-			wantError: false,
 		},
 		{
 			name: "default",
@@ -148,8 +162,38 @@ func Test_ParseConfig(t *testing.T) {
 				EventStorageType: "memory",
 				EventStoragePg:   EventStoragePg{},
 			},
-			wantError: false,
 		},
+	}
+
+	for i, tt := range tests {
+		name := tt.name
+		if name == "" {
+			name = strconv.Itoa(i)
+		}
+
+		t.Run(name, func(t *testing.T) {
+			if tt.init != nil {
+				tt.init()
+			}
+
+			r := strings.NewReader(tt.cfg)
+			cfg, err := ParseConfig(r)
+
+			require.NoError(t, err, "hust not have error")
+			require.Equal(t, tt.want, cfg, "must be equal")
+
+			unsetEnv()
+		})
+	}
+}
+
+func Test_ParseConfigError(t *testing.T) {
+	tests := []struct {
+		name      string
+		cfg       string
+		init      func()
+		wantError bool
+	}{
 		{
 			name: "invalid log level",
 			cfg: `
@@ -208,29 +252,11 @@ func Test_ParseConfig(t *testing.T) {
 			}
 
 			r := strings.NewReader(tt.cfg)
-			cfg, err := ParseConfig(r)
+			_, err := ParseConfig(r)
 
-			if tt.wantError {
-				require.Error(t, err, "must have error")
-			} else {
-				require.NoError(t, err, "hust not have error")
-				require.Equal(t, tt.want, cfg, "must be equal")
-			}
+			require.Error(t, err, "must have error")
 
-			os.Unsetenv("CALENDAR_SHUTDOWN_TIMEOUT")
-
-			os.Unsetenv("CALENDAR_HTTP_PORT")
-			os.Unsetenv("CALENDAR_HTTP_HOST")
-			os.Unsetenv("CALENDAR_HTTP_READ_TIMEOUT")
-			os.Unsetenv("CALENDAR_HTTP_WRITE_TIMEOUT")
-
-			os.Unsetenv("CALENDAR_GRPC_PORT")
-			os.Unsetenv("CALENDAR_GRPC_HOST")
-
-			os.Unsetenv("CANELDAR_LOG_LEVEL")
-
-			os.Unsetenv("CALENDAR_EVENT_STORAGE")
-			os.Unsetenv("CALENDAR_EVENT_STORAGE_PG_DATASOURCE")
+			unsetEnv()
 		})
 	}
 }
