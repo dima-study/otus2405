@@ -15,15 +15,13 @@ import (
 	"google.golang.org/grpc"
 
 	grpcInterceptor "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/grpc/interceptor"
-	internalhttp "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http"
-	httpMiddleware "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/middleware"
 )
 
 type (
 	startServerFunc func() error
 	stopServerFunc  func(context.Context) error
 
-	grpcServiceRegisterFunc func(*grpc.Server)
+	grpcServiceRegisterFunc func(*grpc.Server) error
 )
 
 // createHTTPServer создаёт новый HTTP-сервер и возвращает функцию старта и останова сервера.
@@ -35,11 +33,8 @@ func createHTTPServer(
 	listenAddr := net.JoinHostPort(cfg.HTTP.Host, cfg.HTTP.Port)
 
 	server := &http.Server{
-		Addr: listenAddr,
-		Handler: internalhttp.ApplyMiddlewares(
-			handler,
-			httpMiddleware.LogRequest(logger.WithGroup("http-request")),
-		),
+		Addr:         listenAddr,
+		Handler:      handler,
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), cfg.Log.Level),
 		ReadTimeout:  cfg.HTTP.ReadTimeout,
 		WriteTimeout: cfg.HTTP.WriteTimeout,
@@ -67,11 +62,13 @@ func createHTTPServer(
 }
 
 // createGRPCServer создаёт GRPC-сервер и возвращает функции старта и останова сервера.
+//
+// Возвращает ошибку, случившуюся при регистрации сервиса.
 func createGRPCServer(
 	logger *slog.Logger,
 	cfg Config,
 	register grpcServiceRegisterFunc,
-) (startServerFunc, stopServerFunc) {
+) (startServerFunc, stopServerFunc, error) {
 	grpcLogInterceptors := grpcInterceptor.LogRequest(logger.WithGroup("grpc-request"))
 	grpcAuthInterceptors := grpcInterceptor.Auth(logger.WithGroup("grpc-auth"))
 
@@ -89,7 +86,9 @@ func createGRPCServer(
 		),
 	)
 
-	register(server)
+	if err := register(server); err != nil {
+		return nil, nil, err
+	}
 
 	start := func() error {
 		listenAddr := net.JoinHostPort(cfg.GRPC.Host, cfg.GRPC.Port)
@@ -125,7 +124,7 @@ func createGRPCServer(
 		return nil
 	}
 
-	return startServerFunc(start), stopServerFunc(stop)
+	return startServerFunc(start), stopServerFunc(stop), nil
 }
 
 // startAndShutdown - функция старта и завершения работы серверов.
