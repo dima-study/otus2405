@@ -41,7 +41,7 @@ generate-proto: install-deps-protoc
 #
 
 .PHONY: build
-build:
+build: generate
 	@# Help: build calendar app $(CALENDAR_BIN)
 	go build -v -o $(CALENDAR_BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
 
