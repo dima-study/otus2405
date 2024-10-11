@@ -24,6 +24,15 @@ func ValidateOwner(owner string) (model.OwnerID, error) {
 	return ownerID, err
 }
 
+func WithOwnerID(ctx context.Context, owner string) (context.Context, error) {
+	ownerID, err := ValidateOwner(owner)
+	if err != nil {
+		return nil, err
+	}
+
+	return context.WithValue(ctx, AuthOwnerKey, ownerID), nil
+}
+
 func OwnerIDFromContext(ctx context.Context) (model.OwnerID, error) {
 	ownerID, ok := ctx.Value(AuthOwnerKey).(model.OwnerID)
 	if !ok {

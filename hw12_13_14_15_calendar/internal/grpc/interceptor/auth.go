@@ -64,13 +64,12 @@ func authOwner(
 		return nil, status.Error(codes.Unauthenticated, "no owner token")
 	}
 
-	ownerID, err := auth.ValidateOwner(owner[0])
+	ctx, err = auth.WithOwnerID(ctx, owner[0])
 	if err != nil {
 		logger.InfoContext(ctx, "invalid ownerID", slog.String("error", err.Error()))
 		return nil, status.Error(codes.Unauthenticated, "invalid owner token")
 	}
 
-	ctx = context.WithValue(ctx, auth.AuthOwnerKey, ownerID)
 	resp, err = next(ctx)
 
 	return resp, err
