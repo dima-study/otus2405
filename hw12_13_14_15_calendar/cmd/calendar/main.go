@@ -19,6 +19,7 @@ import (
 	pbEventV1 "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/api/proto/event/v1"
 	calendarBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/calendar"
 	helloBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/hello"
+	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/grpc/gw"
 	internalhttp "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http"
 	httpMiddleware "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/middleware"
 	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/web"
@@ -125,7 +126,14 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 	}
 
 	// http-хендлер для запросов на grpc-gw
-	gwMux := runtime.NewServeMux()
+	gwMux := runtime.NewServeMux(
+		runtime.WithIncomingHeaderMatcher(
+			gw.HeaderMatchers(
+				gw.NoGRPCHeaders,
+				gw.OwnerID,
+			),
+		),
+	)
 
 	// http-хендлер для всех запросов - будет настроен как роутер для webMux и gwMux
 	httpMux := http.NewServeMux()
