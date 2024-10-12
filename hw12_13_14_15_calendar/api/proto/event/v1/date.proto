@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package event.v1;
+
+option go_package = "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/gen/proto/v1";
+
+message Date {
+  int32 year = 1;
+  int32 month = 2;
+  int32 day = 3;
+}
+
+message Month {
+  int32 year = 1;
+  int32 month = 2;
+}

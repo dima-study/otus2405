@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package event.v1;
+
+option go_package = "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/gen/proto/v1";
+
+import "patch/go.proto";
+import "google/api/annotations.proto";
+
+import "event/v1/event.proto";
+import "event/v1/date.proto";
+
+service EventService {
+  rpc CreateEvent(CreateEventRequest) returns (CreateEventResponse) {
+    option (google.api.http) = {
+      post: "/v1/events";
+      body: "event";
+    };
+  };
+
+  rpc UpdateEvent(UpdateEventRequest) returns (UpdateEventResponse) {
+    option (google.api.http) = {
+      put: "/v1/events/{event.event_id}";
+      body: "event";
+    };
+  }
+
+  rpc DeleteEvent(DeleteEventRequest) returns (DeleteEventResponse) {
+    option (google.api.http) = {
+      delete: "/v1/events/{event_id}";
+    };
+  }
+
+  rpc GetDayEvents(GetDayEventsRequest) returns (GetDayEventsResponse) {
+    option (google.api.http) = {
+      get: "/v1/events/query/day/{day.year}/{day.month}/{day.day}";
+    };
+  }
+
+  rpc GetWeekEvents(GetWeekEventsRequest) returns (GetWeekEventsResponse) {
+    option (google.api.http) = {
+      get: "/v1/events/query/week/{start_day.year}/{start_day.month}/{start_day.day}";
+    };
+  }
+
+  rpc GetMonthEvents(GetMonthEventsRequest) returns (GetMonthEventsResponse) {
+    option (google.api.http) = {
+      get: "/v1/events/query/month/{month.year}/{month.month}";
+    };
+  }
+}
+
+message CreateEventRequest {
+  Event event = 1;
+}
+
+message CreateEventResponse {}
+
+
+message UpdateEventRequest {
+  Event event = 1;
+}
+
+message UpdateEventResponse {}
+
+
+message DeleteEventRequest {
+  string event_id = 1 [ (go.field) = { name: 'EventID' } ];
+}
+
+message DeleteEventResponse {}
+
+message GetDayEventsRequest {
+  Date day = 1;
+}
+
+message GetDayEventsResponse {
+  repeated Event events = 1;
+}
+
+message GetWeekEventsRequest {
+  Date start_day = 1;
+}
+
+message GetWeekEventsResponse {
+  repeated Event events = 1;
+}
+
+message GetMonthEventsRequest {
+  Month month = 1;
+}
+
+message GetMonthEventsResponse {
+  repeated Event events = 1;
+}
