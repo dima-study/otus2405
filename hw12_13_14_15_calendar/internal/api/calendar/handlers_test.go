@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -18,7 +19,12 @@ import (
 	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/grpc/auth"
 	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
 	memoryStorage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event/memory"
+	pgStorage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event/pg"
 )
+
+const envVarName = "TEST_STORAGE_PG"
+
+var dataSource = os.Getenv(envVarName)
 
 func Test_APISuite(t *testing.T) {
 	suite.Run(t, new(APITestSuite))
@@ -28,7 +34,7 @@ type APITestSuite struct {
 	suite.Suite
 
 	app     *App
-	storage *memoryStorage.Storage
+	storage model.Storage
 
 	ownerID  model.OwnerID
 	eventIDs []model.ID
@@ -37,8 +43,17 @@ type APITestSuite struct {
 }
 
 func (s *APITestSuite) SetupSuite() {
+	var storage model.Storage
+
+	if dataSource != "" {
+		var err error
+		storage, err = pgStorage.NewStorage(dataSource)
+		s.Require().NoError(err, "must connect")
+	} else {
+		storage = memoryStorage.NewStorage()
+	}
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	storage := memoryStorage.NewStorage()
 	business := calendarBusiness.NewApp(logger, storage)
 	app := NewApp(business, logger)
 
