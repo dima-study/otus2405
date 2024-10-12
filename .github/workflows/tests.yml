@@ -76,6 +76,9 @@ jobs:
         run: make lint
         working-directory: hw12_13_14_15_calendar
 
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+
       - name: make build
         run: make build
         working-directory: hw12_13_14_15_calendar
