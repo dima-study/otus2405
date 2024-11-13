@@ -103,7 +103,7 @@ install-deps-lint:
 	@# Help: Install golangci linter
 	@(which golangci-lint 1>/dev/null 2>&1) && echo "golangci-lint is already installed" \
 		|| ( echo "install golangci-lint..." \
-				&& curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.57.2 \
+				&& curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.60.1 \
 				&& echo "done" \
 			)
 
