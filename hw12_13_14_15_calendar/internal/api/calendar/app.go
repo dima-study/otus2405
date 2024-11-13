@@ -18,6 +18,7 @@ import (
 
 type Business interface {
 	CreateEvent(ctx context.Context, event model.Event) error
+	FindEvent(ctx context.Context, ownerID model.OwnerID, eventID model.ID) (model.Event, error)
 	UpdateEvent(ctx context.Context, event model.Event) error
 	DeleteEvent(ctx context.Context, ownerID model.OwnerID, eventID model.ID) error
 	GetDayEvents(ctx context.Context, ownerID model.OwnerID, year int, month int, day int) ([]model.Event, error)

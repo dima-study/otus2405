@@ -26,7 +26,14 @@ func (a *App) CreateEvent(ctx context.Context, req *proto.CreateEventRequest) (*
 		return nil, a.handleError(ctx, err, "CreateEvent", whereAttr("business.CreateEvent"))
 	}
 
-	return &proto.CreateEventResponse{}, nil
+	event, err = a.business.FindEvent(ctx, event.OwnerID(), event.EventID())
+	if err != nil {
+		return nil, a.handleError(ctx, err, "CreateEvent", whereAttr("business.FindEvent"))
+	}
+
+	return &proto.CreateEventResponse{
+		Event: modelToProto(event),
+	}, nil
 }
 
 func (a *App) UpdateEvent(ctx context.Context, req *proto.UpdateEventRequest) (*proto.UpdateEventResponse, error) {
@@ -45,7 +52,14 @@ func (a *App) UpdateEvent(ctx context.Context, req *proto.UpdateEventRequest) (*
 		return nil, a.handleError(ctx, err, "UpdateEvent", whereAttr("business.UpdateEvent"))
 	}
 
-	return &proto.UpdateEventResponse{}, nil
+	event, err = a.business.FindEvent(ctx, event.OwnerID(), event.EventID())
+	if err != nil {
+		return nil, a.handleError(ctx, err, "UpdateEvent", whereAttr("business.FindEvent"))
+	}
+
+	return &proto.UpdateEventResponse{
+		Event: modelToProto(event),
+	}, nil
 }
 
 func (a *App) DeleteEvent(ctx context.Context, req *proto.DeleteEventRequest) (*proto.DeleteEventResponse, error) {

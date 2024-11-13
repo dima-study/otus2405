@@ -30,6 +30,15 @@ func (a *App) CreateEvent(ctx context.Context, event model.Event) error {
 	return nil
 }
 
+func (a *App) FindEvent(ctx context.Context, ownerID model.OwnerID, eventID model.ID) (model.Event, error) {
+	event, err := a.storage.FindEvent(ctx, ownerID, eventID)
+	if err != nil {
+		return model.Event{}, fmt.Errorf("can't find event: %w", err)
+	}
+
+	return event, nil
+}
+
 func (a *App) UpdateEvent(ctx context.Context, event model.Event) error {
 	err := a.storage.UpdateEvent(ctx, event)
 	if err != nil {
