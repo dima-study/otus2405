@@ -13,6 +13,7 @@ type Config struct {
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout" env:"CALENDAR_SHUTDOWN_TIMEOUT" env-default:"5s"`
 
 	HTTP HTTPConfig   `yaml:"http"   env-prefix:"CALENDAR_HTTP_"`
+	GRPC GRPCConfig   `yaml:"grpc"   env-prefix:"CALENDAR_GRPC_"`
 	Log  LoggerConfig `yaml:"logger" env-prefix:"CANELDAR_LOG_"`
 
 	EventStorageType EventStorageType `yaml:"event_storage"    env:"CALENDAR_EVENT_STORAGE" env-default:"memory"`
@@ -24,6 +25,11 @@ type HTTPConfig struct {
 	Port         string        `yaml:"port"          env:"PORT"          env-default:"8081"`
 	ReadTimeout  time.Duration `yaml:"read_timeout"  env:"READ_TIMEOUT"  env-default:"5s"`
 	WriteTimeout time.Duration `yaml:"write_timeout" env:"WRITE_TIMEOUT" env-default:"15s"`
+}
+
+type GRPCConfig struct {
+	Host string `yaml:"host" env:"HOST" env-default:"localhost"`
+	Port string `yaml:"port" env:"PORT" env-default:"50051"`
 }
 
 type LoggerConfig struct {

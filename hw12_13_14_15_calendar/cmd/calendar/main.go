@@ -8,14 +8,19 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/ilyakaznacheev/cleanenv"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
+	calendarAPI "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/api/calendar"
+	helloAPI "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/api/hello"
+	pbEventV1 "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/api/proto/event/v1"
+	calendarBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/calendar"
 	helloBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/hello"
+	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/grpc/gw"
 	internalhttp "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http"
-	helloHttp "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/app/hello"
 	httpMiddleware "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/middleware"
 	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/web"
 	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/logger"
@@ -93,63 +98,92 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 		return err
 	}
 	defer storageDoneFn()
-	_ = storage
 
-	helloBusinessApp := helloBusiness.NewApp(logger)
-	helloHTTPApp := helloHttp.NewApp(helloBusinessApp, logger)
+	logger.Info("init app")
 
+	helloBusinessApp := helloBusiness.NewApp(logger.With(slog.String("comp", "business-hello")))
+	calendarBusinessApp := calendarBusiness.NewApp(logger.With(slog.String("comp", "business-calendar")), storage)
+
+	helloAPIApp := helloAPI.NewApp(helloBusinessApp, logger.With(slog.String("comp", "api-hello")))
+	calendarAPIApp := calendarAPI.NewApp(calendarBusinessApp, logger.With(slog.String("comp", "api-calendar")))
+
+	// Создаём webmux для hello-app
 	webMux, err := web.NewMux(
-		logger,
-		helloHTTPApp,
+		logger.With(slog.String("comp", "web-mux")),
+		helloAPIApp,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("can't create web-mux: %w", err)
 	}
 
-	listenAddr := net.JoinHostPort(cfg.HTTP.Host, cfg.HTTP.Port)
-	server := http.Server{
-		Addr: listenAddr,
-		Handler: internalhttp.ApplyMiddlewares(
+	// Создаём клиента для grpc-gateway
+	grpcGWConn, err := grpc.NewClient(
+		net.JoinHostPort(cfg.GRPC.Host, cfg.GRPC.Port),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return fmt.Errorf("can't init GRPC-gw client: %w", err)
+	}
+
+	// http-хендлер для запросов на grpc-gw
+	gwMux := runtime.NewServeMux(
+		runtime.WithIncomingHeaderMatcher(
+			gw.HeaderMatchers(
+				gw.NoGRPCHeaders,
+				gw.OwnerID,
+			),
+		),
+	)
+
+	// http-хендлер для всех запросов - будет настроен как роутер для webMux и gwMux
+	httpMux := http.NewServeMux()
+
+	// Запросы к grpc будут идти через url с префиксом /api/
+	httpMux.Handle(
+		"/api/",
+		internalhttp.ApplyMiddlewares(
+			gwMux,
+			httpMiddleware.URLPathPrefixReplace("/api/", "/"),
+			httpMiddleware.LogRequest(logger.WithGroup("http-grpc-gw-request")),
+		),
+	)
+
+	// По умолчинаю все запросы будут идти на webMux
+	httpMux.Handle(
+		"/",
+		internalhttp.ApplyMiddlewares(
 			webMux,
 			httpMiddleware.LogRequest(logger.WithGroup("http-request")),
 		),
-		ErrorLog:     slog.NewLogLogger(logger.Handler(), cfg.Log.Level),
-		ReadTimeout:  cfg.HTTP.ReadTimeout,
-		WriteTimeout: cfg.HTTP.WriteTimeout,
-	}
+	)
 
-	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
-
-	serverErrors := make(chan error, 1)
-	go func() {
-		logger.Info(
-			"start server",
-			slog.String("listen", listenAddr),
-		)
-		serverErrors <- server.ListenAndServe()
-	}()
-
-	select {
-	case err := <-serverErrors:
-		return fmt.Errorf("server error: %w", err)
-
-	case sig := <-shutdown:
-		logger.Info(
-			"shutdown",
-			slog.String("signal", sig.String()),
-		)
-
-		ctx, cancel := context.WithTimeout(ctx, cfg.ShutdownTimeout)
-		defer cancel()
-
-		if err := server.Shutdown(ctx); err != nil {
-			server.Close()
-			return fmt.Errorf("could not stop server: %w", err)
+	// Регистратор grpc сервиса:
+	//   - регистрирует EventService-хендлер для grpc-gw
+	//   - регистрирует EventService
+	grpcRegisterFn := grpcServiceRegisterFunc(func(s *grpc.Server) error {
+		err := pbEventV1.RegisterEventServiceHandler(context.Background(), gwMux, grpcGWConn)
+		if err != nil {
+			return err
 		}
+
+		pbEventV1.RegisterEventServiceServer(s, calendarAPIApp)
+
+		return nil
+	})
+
+	httpStart, httpStop := createHTTPServer(logger, cfg, httpMux)
+	grpcStart, grpcStop, err := createGRPCServer(logger, cfg, grpcRegisterFn)
+	if err != nil {
+		return fmt.Errorf("can't create GRPC server: %w", err)
 	}
 
-	return nil
+	return startAndShutdown(
+		ctx,
+		logger,
+		cfg,
+		[]startServerFunc{httpStart, grpcStart},
+		[]stopServerFunc{httpStop, grpcStop},
+	)
 }
 
 func initStorage(cfg Config) (model.Storage, func() error, error) {
