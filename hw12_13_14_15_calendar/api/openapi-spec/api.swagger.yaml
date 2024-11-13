@@ -180,6 +180,9 @@ definitions:
     additionalProperties: {}
   CreateEventResponse:
     type: object
+    properties:
+      event:
+        $ref: '#/definitions/Event'
   Date:
     type: object
     properties:
@@ -260,3 +263,6 @@ definitions:
           $ref: '#/definitions/Any'
   UpdateEventResponse:
     type: object
+    properties:
+      event:
+        $ref: '#/definitions/Event'

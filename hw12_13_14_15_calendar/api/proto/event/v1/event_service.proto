@@ -54,14 +54,18 @@ message CreateEventRequest {
   Event event = 1;
 }
 
-message CreateEventResponse {}
+message CreateEventResponse {
+  Event event = 1;
+}
 
 
 message UpdateEventRequest {
   Event event = 1;
 }
 
-message UpdateEventResponse {}
+message UpdateEventResponse {
+  Event event = 1;
+}
 
 
 message DeleteEventRequest {
