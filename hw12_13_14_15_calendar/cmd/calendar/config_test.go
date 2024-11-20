@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/config"
 )
 
 func unsetEnv() {
@@ -74,7 +76,7 @@ func Test_ParseConfig(t *testing.T) {
 					Level: slog.LevelDebug,
 				},
 				EventStorageType: "pg",
-				EventStoragePg: EventStoragePg{
+				EventStoragePg: config.EventStoragePg{
 					DataSource: "pg://data?source",
 				},
 			},
@@ -135,7 +137,7 @@ func Test_ParseConfig(t *testing.T) {
 					Level: slog.LevelError,
 				},
 				EventStorageType: "pg",
-				EventStoragePg: EventStoragePg{
+				EventStoragePg: config.EventStoragePg{
 					DataSource: "pg://data?source",
 				},
 			},
@@ -160,7 +162,7 @@ func Test_ParseConfig(t *testing.T) {
 					Level: slog.LevelInfo,
 				},
 				EventStorageType: "memory",
-				EventStoragePg:   EventStoragePg{},
+				EventStoragePg:   config.EventStoragePg{},
 			},
 		},
 	}
