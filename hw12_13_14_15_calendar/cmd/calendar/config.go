@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -66,11 +67,14 @@ type EventStoragePg struct {
 
 // ReadConfig пытается прочитать конфиг в yaml формате из файла и переменных окружения.
 func ReadConfig(path string) (Config, error) {
-	var cfg Config
-
-	err := cleanenv.ReadConfig(path, &cfg)
+	file, err := os.Open(path)
 	if err != nil {
-		return Config{}, err
+		return Config{}, fmt.Errorf("can't read file: %w", err)
+	}
+
+	cfg, err := ParseConfig(file)
+	if err != nil {
+		return Config{}, fmt.Errorf("can't parse config: %w", err)
 	}
 
 	return cfg, nil
