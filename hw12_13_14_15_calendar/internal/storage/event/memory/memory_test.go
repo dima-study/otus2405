@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
+	modelStorage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event"
 )
 
 type populateArgs struct {
@@ -69,12 +70,12 @@ func populate(t *testing.T) (*Storage, populateArgs) {
 		{
 			name:  "event#1 user#1 duplicate",
 			event: mkEvent(t, eventIDs[0], ownerIDs[0], "1", times[1][0], times[1][1]),
-			err:   model.ErrEventAlreadyExists,
+			err:   modelStorage.ErrEventAlreadyExists,
 		},
 		{
 			name:  "event#2 user#1 time overlap",
 			event: mkEvent(t, eventIDs[1], ownerIDs[0], "2", times[1][0], times[1][1]),
-			err:   model.ErrTimeIsBusy,
+			err:   modelStorage.ErrTimeIsBusy,
 		},
 		{
 			name:  "event#2 user#1",
@@ -155,12 +156,12 @@ func TestMemory_FindEvent(t *testing.T) {
 		{
 			name: "user#1 event#3",
 			args: args{pargs.ownerIDs[0], pargs.eventIDs[2]},
-			err:  model.ErrEventNotFound,
+			err:  modelStorage.ErrEventNotFound,
 		},
 		{
 			name: "user#2 event#1",
 			args: args{pargs.ownerIDs[1], pargs.eventIDs[0]},
-			err:  model.ErrEventNotFound,
+			err:  modelStorage.ErrEventNotFound,
 		},
 		{
 			name: "user#3 event#1",
@@ -217,7 +218,7 @@ func TestMemory_UpdateEvent(t *testing.T) {
 
 		err := storage.UpdateEvent(context.Background(), event)
 		require.Error(t, err, "must have error")
-		require.ErrorIs(t, err, model.ErrEventNotFound, "must be ErrEventNotFound error")
+		require.ErrorIs(t, err, modelStorage.ErrEventNotFound, "must be ErrEventNotFound error")
 	})
 
 	t.Run("time is busy", func(t *testing.T) {
@@ -225,7 +226,7 @@ func TestMemory_UpdateEvent(t *testing.T) {
 
 		err := storage.UpdateEvent(context.Background(), event)
 		require.Error(t, err, "must have error")
-		require.ErrorIs(t, err, model.ErrTimeIsBusy, "must be ErrTimeIsBusy error")
+		require.ErrorIs(t, err, modelStorage.ErrTimeIsBusy, "must be ErrTimeIsBusy error")
 	})
 
 	events := storage.userMap[pargs.ownerIDs[0]]
@@ -241,13 +242,13 @@ func TestMemory_DeleteEvent(t *testing.T) {
 	t.Run("no event for unknown user", func(t *testing.T) {
 		err := storage.DeleteEvent(context.Background(), model.NewOwnerID(), model.NewID())
 		require.Error(t, err, "must have error")
-		require.ErrorIs(t, err, model.ErrEventNotFound, "must be ErrEventNotFound error")
+		require.ErrorIs(t, err, modelStorage.ErrEventNotFound, "must be ErrEventNotFound error")
 	})
 
 	t.Run("no event for user", func(t *testing.T) {
 		err := storage.DeleteEvent(context.Background(), pargs.ownerIDs[0], model.NewID())
 		require.Error(t, err, "must have error")
-		require.ErrorIs(t, err, model.ErrEventNotFound, "must be ErrEventNotFound error")
+		require.ErrorIs(t, err, modelStorage.ErrEventNotFound, "must be ErrEventNotFound error")
 	})
 
 	t.Run("success", func(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
+	storage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event"
 )
 
 type (
@@ -19,7 +20,7 @@ type (
 	}
 )
 
-var _ model.Storage = (*Storage)(nil)
+var _ storage.Storage = (*Storage)(nil)
 
 func NewStorage() *Storage {
 	return &Storage{
@@ -36,7 +37,7 @@ func (m *Storage) AddEvent(ctx context.Context, event model.Event) error {
 
 func (m *Storage) addEvent(ctx context.Context, event model.Event) error {
 	if _, err := m.findEvent(ctx, event.OwnerID(), event.EventID()); err == nil {
-		return model.ErrEventAlreadyExists
+		return storage.ErrEventAlreadyExists
 	}
 
 	events, exists := m.userMap[event.OwnerID()]
@@ -46,7 +47,7 @@ func (m *Storage) addEvent(ctx context.Context, event model.Event) error {
 
 	i := findNewEventIndex(events, event)
 	if i == -1 {
-		return model.ErrTimeIsBusy
+		return storage.ErrTimeIsBusy
 	}
 
 	events = append(events[:i], append(Events{event}, events[i:]...)...)
@@ -65,12 +66,12 @@ func (m *Storage) FindEvent(ctx context.Context, ownerID model.OwnerID, eventID 
 func (m *Storage) findEvent(_ context.Context, ownerID model.OwnerID, eventID model.ID) (model.Event, error) {
 	events, exists := m.userMap[ownerID]
 	if !exists {
-		return model.Event{}, model.ErrEventNotFound
+		return model.Event{}, storage.ErrEventNotFound
 	}
 
 	i := findEventIndex(events, eventID)
 	if i == -1 {
-		return model.Event{}, model.ErrEventNotFound
+		return model.Event{}, storage.ErrEventNotFound
 	}
 
 	return events[i], nil
@@ -118,12 +119,12 @@ func (m *Storage) DeleteEvent(ctx context.Context, ownerID model.OwnerID, eventI
 func (m *Storage) deleteEvent(_ context.Context, ownerID model.OwnerID, eventID model.ID) error {
 	events, exists := m.userMap[ownerID]
 	if !exists {
-		return model.ErrEventNotFound
+		return storage.ErrEventNotFound
 	}
 
 	i := findEventIndex(events, eventID)
 	if i == -1 {
-		return model.ErrEventNotFound
+		return storage.ErrEventNotFound
 	}
 
 	events = append(events[:i], events[i+1:]...)

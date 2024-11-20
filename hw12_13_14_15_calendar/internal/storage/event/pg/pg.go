@@ -11,6 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
+	storage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event"
 )
 
 type pgEvent struct {
@@ -28,7 +29,7 @@ type Storage struct {
 	DB *sqlx.DB
 }
 
-var _ model.Storage = (*Storage)(nil)
+var _ storage.Storage = (*Storage)(nil)
 
 func NewStorage(dataSource string) (*Storage, error) {
 	db, err := sqlx.Connect("pgx", dataSource)
@@ -102,7 +103,7 @@ WHERE owner_id = :owner_id
 		}
 
 		if n == 0 {
-			return model.ErrEventNotFound
+			return storage.ErrEventNotFound
 		}
 
 		return nil
@@ -133,7 +134,7 @@ WHERE owner_id=$1
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			err = model.ErrEventNotFound
+			err = storage.ErrEventNotFound
 		}
 
 		return model.Event{}, err
@@ -170,7 +171,7 @@ WHERE owner_id = $1
 		}
 
 		if n == 0 {
-			return model.ErrEventNotFound
+			return storage.ErrEventNotFound
 		}
 
 		return nil
@@ -330,9 +331,9 @@ func handleModelError(err error) error {
 	errStr := err.Error()
 	switch {
 	case strings.Contains(errStr, "uniq_owner_event_id"):
-		return model.ErrEventAlreadyExists
+		return storage.ErrEventAlreadyExists
 	case strings.Contains(errStr, "no_time_overlap"):
-		return model.ErrTimeIsBusy
+		return storage.ErrTimeIsBusy
 	}
 
 	return err

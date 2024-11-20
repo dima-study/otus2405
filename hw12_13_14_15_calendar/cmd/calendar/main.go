@@ -25,7 +25,6 @@ import (
 	httpMiddleware "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/middleware"
 	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/http/web"
 	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/logger"
-	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
 	memoryStorage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event/memory"
 	pgStorage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event/pg"
 )
@@ -187,7 +186,7 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 	)
 }
 
-func initStorage(cfg Config) (model.Storage, func() error, error) {
+func initStorage(cfg Config) (calendarBusiness.EventStorage, func() error, error) {
 	switch cfg.EventStorageType {
 	case config.EventStorageTypeMemory:
 		storage := memoryStorage.NewStorage()

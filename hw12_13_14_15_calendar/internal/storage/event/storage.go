@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
 )
 
 var (
@@ -13,19 +15,20 @@ var (
 )
 
 // Storage - интерфейс взаимодйствия с коллекцией событий.
+// Данный интерфейс должно поддерживать любое хранилище.
 type Storage interface {
 	// AddEvent добавляет событие в коллекцию.
-	AddEvent(ctx context.Context, event Event) error
+	AddEvent(ctx context.Context, event model.Event) error
 
 	// UpdateEvent обновляет событие в коллекции.
-	UpdateEvent(ctx context.Context, event Event) error
+	UpdateEvent(ctx context.Context, event model.Event) error
 
 	// FindEvent находит собитие в коллекции по ownerID и eventID.
-	FindEvent(ctx context.Context, ownerID OwnerID, eventID ID) (Event, error)
+	FindEvent(ctx context.Context, ownerID model.OwnerID, eventID model.ID) (model.Event, error)
 
 	// DeleteEvent удаляет событие из коллекции по ownerID и eventID.
-	DeleteEvent(ctx context.Context, ownerID OwnerID, eventID ID) error
+	DeleteEvent(ctx context.Context, ownerID model.OwnerID, eventID model.ID) error
 
 	// QueryEvents находит все события в коллекции для ownerID, которые запланированы на указанный промежуток [from, to).
-	QueryEvents(ctx context.Context, ownerID OwnerID, from time.Time, to time.Time) ([]Event, error)
+	QueryEvents(ctx context.Context, ownerID model.OwnerID, from time.Time, to time.Time) ([]model.Event, error)
 }
