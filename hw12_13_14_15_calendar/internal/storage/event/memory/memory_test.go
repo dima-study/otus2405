@@ -482,12 +482,12 @@ func TestMemory_QueryEventsToNotify(t *testing.T) {
 				pargs.eventIDs[0],
 			},
 		},
-		// {
-		// 	name:     "no need notify",
-		// 	from:     pargs.times[0][0].Truncate(time.Second).Add(-5 * 24 * time.Hour),
-		// 	to:       pargs.times[0][0].Truncate(time.Second).Add(-5*24*time.Hour + time.Hour),
-		// 	evendIDs: []model.ID{},
-		// },
+		{
+			name:     "no need notify",
+			from:     pargs.times[0][0].Truncate(time.Second).Add(-5 * 24 * time.Hour),
+			to:       pargs.times[0][0].Truncate(time.Second).Add(-5*24*time.Hour + time.Hour),
+			evendIDs: []model.ID{},
+		},
 	}
 
 	for _, tt := range tests {
