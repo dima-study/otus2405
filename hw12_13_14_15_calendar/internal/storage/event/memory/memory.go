@@ -180,7 +180,7 @@ func (m *Storage) PurgeOldEvents(ctx context.Context, olderThan time.Time) error
 	return m.purgeOldEvents(ctx, olderThan)
 }
 
-func (m *Storage) purgeOldEvents(_ context.Context, olderThan time.Time) error {
+func (m *Storage) purgeOldEvents(_ context.Context, olderThan time.Time) error { //nolint:unparam
 	for ownerID, events := range m.userMap {
 		l := len(events)
 		for i := l - 1; i >= 0; i-- {
