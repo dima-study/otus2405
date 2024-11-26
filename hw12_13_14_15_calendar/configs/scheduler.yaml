@@ -1,0 +1,8 @@
+amqp_connect: amqp://guest:guest@localhost:5672/
+notify_interval: 60s
+purge_older_than: 8760h
+
+logger:
+  level: info
+
+event_storage: memory
