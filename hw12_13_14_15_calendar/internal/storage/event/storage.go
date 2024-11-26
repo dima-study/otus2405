@@ -31,4 +31,11 @@ type Storage interface {
 
 	// QueryEvents находит все события в коллекции для ownerID, которые запланированы на указанный промежуток [from, to).
 	QueryEvents(ctx context.Context, ownerID model.OwnerID, from time.Time, to time.Time) ([]model.Event, error)
+
+	// PurgeOldEvents удаляет события из коллекции старше чем olderThan.
+	PurgeOldEvents(ctx context.Context, olderThan time.Time) error
+
+	// QueryEventsToNotify находит все события в коллекции, по которым необходимо отправить уведомление
+	// в указанный промежуток времени [from, to).
+	QueryEventsToNotify(ctx context.Context, from time.Time, to time.Time) ([]model.Event, error)
 }
