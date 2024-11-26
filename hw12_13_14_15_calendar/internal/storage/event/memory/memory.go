@@ -173,6 +173,56 @@ func (m *Storage) QueryEvents(
 	return events[k : l+1], nil
 }
 
+func (m *Storage) PurgeOldEvents(ctx context.Context, olderThan time.Time) error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+
+	return m.purgeOldEvents(ctx, olderThan)
+}
+
+func (m *Storage) purgeOldEvents(_ context.Context, olderThan time.Time) error {
+	for ownerID, events := range m.userMap {
+		l := len(events)
+		for i := l - 1; i >= 0; i-- {
+			println(i, len(events))
+			if events[i].EndAt().Before(olderThan) {
+				events = append(events[:i], events[i+1:]...)
+				l--
+			}
+		}
+
+		m.userMap[ownerID] = events[0:l:l]
+	}
+
+	return nil
+}
+
+func (m *Storage) QueryEventsToNotify(
+	ctx context.Context,
+	from time.Time,
+	to time.Time,
+) ([]model.Event, error) {
+	m.mx.RLock()
+	defer m.mx.RUnlock()
+
+	var events []model.Event
+
+	for _, userEvents := range m.userMap {
+		for _, ev := range userEvents {
+			if ev.NotifyBefore == 0 {
+				continue
+			}
+
+			startAt := ev.StartAt().Add(time.Duration(-ev.NotifyBefore) * 24 * time.Hour)
+			if (from.Before(startAt) || from.Equal(startAt)) && startAt.Before(to) {
+				events = append(events, ev)
+			}
+		}
+	}
+
+	return events, nil
+}
+
 // findNewEventIndex пытается найти индекс в слайсе events для нового события event.
 // Все элементы слайса с найденным индексом и выше должны располагаться "правее" элемента event
 // после его добавления слайс.
