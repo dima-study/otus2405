@@ -33,11 +33,15 @@ func mkEvent(
 	title model.Title,
 	startAt time.Time,
 	endAt time.Time,
+	notifyBefore uint,
 ) model.Event {
 	t.Helper()
 
 	event, err := model.NewEvent(eventID, ownerID, title, startAt, endAt)
 	require.NoErrorf(t, err, "must not have error while create an event %s", title)
+
+	event.NotifyBefore = notifyBefore
+
 	return event
 }
 
@@ -90,32 +94,32 @@ func (s *PgTestSuite) populate() {
 	}{
 		{
 			name:  "populate event#1 user#1",
-			event: mkEvent(s.T(), eventIDs[0], ownerIDs[0], "1", times[1][0], times[1][1]),
+			event: mkEvent(s.T(), eventIDs[0], ownerIDs[0], "1", times[1][0], times[1][1], 5),
 			err:   nil,
 		},
 		{
 			name:  "populate event#1 user#1 duplicate",
-			event: mkEvent(s.T(), eventIDs[0], ownerIDs[0], "1", times[1][0], times[1][1]),
+			event: mkEvent(s.T(), eventIDs[0], ownerIDs[0], "1", times[1][0], times[1][1], 5),
 			err:   modelStorage.ErrEventAlreadyExists,
 		},
 		{
 			name:  "populate event#2 user#1 time overlap",
-			event: mkEvent(s.T(), eventIDs[1], ownerIDs[0], "2", times[1][0], times[1][1]),
+			event: mkEvent(s.T(), eventIDs[1], ownerIDs[0], "2", times[1][0], times[1][1], 5),
 			err:   modelStorage.ErrTimeIsBusy,
 		},
 		{
 			name:  "populate event#2 user#1",
-			event: mkEvent(s.T(), eventIDs[1], ownerIDs[0], "2", times[0][0], times[0][1]),
+			event: mkEvent(s.T(), eventIDs[1], ownerIDs[0], "2", times[0][0], times[0][1], 0),
 			err:   nil,
 		},
 		{
 			name:  "populate event#1 user#3",
-			event: mkEvent(s.T(), eventIDs[0], ownerIDs[2], "1", times[1][0], times[1][1]),
+			event: mkEvent(s.T(), eventIDs[0], ownerIDs[2], "1", times[1][0], times[1][1], 5),
 			err:   nil,
 		},
 		{
 			name:  "populate event#2 user#3",
-			event: mkEvent(s.T(), eventIDs[1], ownerIDs[2], "2", times[0][0], times[0][1]),
+			event: mkEvent(s.T(), eventIDs[1], ownerIDs[2], "2", times[0][0], times[0][1], 0),
 			err:   nil,
 		},
 	}
@@ -217,14 +221,14 @@ func (s *PgTestSuite) Test_UpdateEvent() {
 			require.Equal(t, events[1].EventID(), s.args.eventIDs[0], "event #1 must be at 1")
 		})
 
-		event := mkEvent(t, s.args.eventIDs[1], s.args.ownerIDs[0], "2", s.args.times[2][0], s.args.times[2][1])
+		event := mkEvent(t, s.args.eventIDs[1], s.args.ownerIDs[0], "2", s.args.times[2][0], s.args.times[2][1], 0)
 
 		err := s.storage.UpdateEvent(context.Background(), event)
 		require.NoError(t, err, "must not have error")
 	})
 
 	s.T().Run("not found", func(t *testing.T) {
-		event := mkEvent(t, s.args.eventIDs[2], s.args.ownerIDs[0], "2", s.args.times[2][0], s.args.times[2][1])
+		event := mkEvent(t, s.args.eventIDs[2], s.args.ownerIDs[0], "2", s.args.times[2][0], s.args.times[2][1], 0)
 
 		err := s.storage.UpdateEvent(context.Background(), event)
 		require.Error(t, err, "must have error")
@@ -232,7 +236,7 @@ func (s *PgTestSuite) Test_UpdateEvent() {
 	})
 
 	s.T().Run("time is busy", func(t *testing.T) {
-		event := mkEvent(t, s.args.eventIDs[1], s.args.ownerIDs[0], "2", s.args.times[1][0], s.args.times[1][1])
+		event := mkEvent(t, s.args.eventIDs[1], s.args.ownerIDs[0], "2", s.args.times[1][0], s.args.times[1][1], 0)
 
 		err := s.storage.UpdateEvent(context.Background(), event)
 		require.Error(t, err, "must have error")
@@ -387,6 +391,65 @@ func (s *PgTestSuite) Test_QueryEvents() {
 
 			require.NoError(s.T(), err, "must not have error")
 
+			for _, e := range events {
+				eventIDs = append(eventIDs, e.EventID())
+			}
+
+			require.Equal(t, tt.evendIDs, eventIDs, "proper result")
+		})
+	}
+}
+
+func (s *PgTestSuite) Test_PurgeOldEvents() {
+	err := s.storage.PurgeOldEvents(
+		context.Background(),
+		s.args.times[1][0].Truncate(time.Second),
+	)
+	s.Require().NoError(err, "must not have arror")
+
+	rows, err := s.storage.DB.Query("SELECT count(*) FROM events")
+	s.Require().NoError(err, "must not have error")
+	defer rows.Close()
+
+	s.Require().True(rows.Next(), "must have result")
+
+	count := -1
+	err = rows.Scan(&count)
+	s.Require().NoError(err, "must not have error")
+
+	s.Require().Equal(2, count, "must be proper value")
+}
+
+func (s *PgTestSuite) Test_QueryEventsToNotify() {
+	tests := []struct {
+		name     string
+		from     time.Time
+		to       time.Time
+		evendIDs []model.ID
+	}{
+		{
+			name: "need notify",
+			from: s.args.times[1][0].Truncate(time.Second).Add(-5 * 24 * time.Hour),
+			to:   s.args.times[1][0].Truncate(time.Second).Add(-5*24*time.Hour + time.Hour),
+			evendIDs: []model.ID{
+				s.args.eventIDs[0],
+				s.args.eventIDs[0],
+			},
+		},
+		{
+			name:     "no need notify",
+			from:     s.args.times[0][0].Truncate(time.Second).Add(-5 * 24 * time.Hour),
+			to:       s.args.times[0][0].Truncate(time.Second).Add(-5*24*time.Hour + time.Hour),
+			evendIDs: []model.ID{},
+		},
+	}
+
+	for _, tt := range tests {
+		s.T().Run(tt.name, func(t *testing.T) {
+			events, err := s.storage.QueryEventsToNotify(context.Background(), tt.from, tt.to)
+			s.Require().NoError(err, "must not have arror")
+
+			eventIDs := []model.ID{}
 			for _, e := range events {
 				eventIDs = append(eventIDs, e.EventID())
 			}
