@@ -232,6 +232,80 @@ ORDER BY start_at`,
 	return events, nil
 }
 
+func (s *Storage) PurgeOldEvents(ctx context.Context, olderThan time.Time) error {
+	return s.withTx(ctx, func(tx *sqlx.Tx) error {
+		_, err := tx.ExecContext(
+			ctx,
+			`
+DELETE
+
+FROM events
+
+WHERE upper(time)<$1`,
+			olderThan,
+		)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (s *Storage) QueryEventsToNotify(
+	ctx context.Context,
+	from time.Time,
+	to time.Time,
+) ([]model.Event, error) {
+	rows, err := s.DB.QueryxContext(
+		ctx,
+		`
+SELECT
+    id
+  , event_id
+  , owner_id
+  , lower(time) AS start_at
+  , upper(time) AS end_at
+  , title
+  , description
+  , notify_before
+
+FROM events
+
+WHERE notify_before>0
+  AND $1 <= lower(time) - notify_before * '1 day'::interval
+  AND lower(time)  - notify_before * '1 day'::interval < $2
+
+ORDER BY start_at`,
+		from, to,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []model.Event
+	for rows.Next() {
+		var ev pgEvent
+		if err = rows.StructScan(&ev); err != nil {
+			return nil, err
+		}
+
+		event, err := toModel(ev)
+		if err != nil {
+			return nil, err
+		}
+
+		events = append(events, event)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return events, nil
+}
+
 // withTx выполняет функцию fn в транзакции.
 func (s *Storage) withTx(ctx context.Context, fn func(tx *sqlx.Tx) error) (err error) {
 	tx, err := s.DB.BeginTxx(ctx, nil)
