@@ -198,7 +198,7 @@ func (m *Storage) purgeOldEvents(_ context.Context, olderThan time.Time) error {
 }
 
 func (m *Storage) QueryEventsToNotify(
-	ctx context.Context,
+	_ context.Context,
 	from time.Time,
 	to time.Time,
 ) ([]model.Event, error) {
