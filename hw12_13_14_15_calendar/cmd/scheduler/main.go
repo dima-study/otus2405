@@ -103,6 +103,7 @@ func run(ctx context.Context, logger *slog.Logger, levelVar *slog.LevelVar) erro
 	schedulerBusinessApp := schedulerBusiness.NewApp(logger, notifier, storage)
 	schedulerBusinessApp.PurgeOlderThan = cfg.PurgeOlderThan
 	schedulerBusinessApp.NotifyInterval = cfg.NotifyInterval
+	schedulerBusinessApp.PurgeInterval = cfg.PurgeInterval
 
 	logger.Info("start app")
 	schedulerBusinessApp.Schedule(ctx)
