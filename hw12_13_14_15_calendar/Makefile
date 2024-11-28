@@ -48,24 +48,48 @@ build: build-app-calendar build-app-scheduler build-app-sender
 .PHONY: build-app-calendar
 build-app-calendar: generate
 	@# Help: build calendar app $(CALENDAR_BIN)
-	go build -v -o $(CALENDAR_BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
+	CGO_ENABLED=0 go build -v -o $(CALENDAR_BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
 
 
 .PHONY: build-app-scheduler
 build-app-scheduler:
 	@# Help: build scheduler app $(SCHEDULER_BIN)
-	go build -v -o $(SCHEDULER_BIN) -ldflags "$(LDFLAGS)" ./cmd/scheduler
+	CGO_ENABLED=0 go build -v -o $(SCHEDULER_BIN) -ldflags "$(LDFLAGS)" ./cmd/scheduler
 
 
 .PHONY: build-app-sender
 build-app-sender:
 	@# Help: build sender app $(SENDER_BIN)
-	go build -v -o $(SENDER_BIN) -ldflags "$(LDFLAGS)" ./cmd/sender
+	CGO_ENABLED=0 go build -v -o $(SENDER_BIN) -ldflags "$(LDFLAGS)" ./cmd/sender
 
 
 .PHONY: build-img-all
-build-img-all: build-img-pg build-img-amqp
+build-img-all: build-img-pg build-img-amqp build-img-calendar build-img-scheduler build-img-sender
 	@# Help: Build all docker images
+
+
+.PHONY: build-img-calendar
+build-img-calendar:
+	@# Help: Build calender app docker image $(DOCKER_IMG_CALENDAR)
+	docker build \
+		-t $(DOCKER_IMG_CALENDAR) \
+		-f build/app-calendar/Dockerfile .
+
+
+.PHONY: build-img-scheduler
+build-img-scheduler:
+	@# Help: Build scheduler app docker image $(DOCKER_IMG_SCHEDULER)
+	docker build \
+		-t $(DOCKER_IMG_SCHEDULER) \
+		-f build/app-scheduler/Dockerfile .
+
+
+.PHONY: build-img-sender
+build-img-sender:
+	@# Help: Build sender app docker image $(DOCKER_IMG_SENDER)
+	docker build \
+		-t $(DOCKER_IMG_SENDER) \
+		-f build/app-sender/Dockerfile .
 
 
 .PHONY: build-img-pg
