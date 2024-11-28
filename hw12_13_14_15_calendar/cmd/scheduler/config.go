@@ -15,6 +15,9 @@ type Config struct {
 	// NotifyInterval как часто опрашивать сервис календаря на предмет событий с уведомлениями.
 	NotifyInterval time.Duration `yaml:"notify_interval" env:"CALENDAR_NOTIFY_INTERVAL" env-default:"60s"`
 
+	// PurgeInterval как часто удалять старые события.
+	PurgeInterval time.Duration `yaml:"purge_interval" env:"CALENDAR_PURGE_INTERVAL" env-default:"1h"`
+
 	// PurgeOlderThan - события старше данного значения будут удалены.
 	// По умолчанию - удаляем события старше 365 дней.
 	PurgeOlderThan time.Duration `yaml:"purge_older_than" env:"CALENDAR_PURGE_PERIOD" env-default:"8760h"` // 365 * 24
