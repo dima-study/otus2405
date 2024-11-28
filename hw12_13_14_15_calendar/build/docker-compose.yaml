@@ -77,8 +77,7 @@ services:
       ports:
         - "5672:5672"
       healthcheck:
-        test: rabbitmq-diagnostics -q ping
-        # test: ["CMD-SHELL", "rabbitmq-diagnostics", "-q", "ping"]
+        test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
         interval: 10s
         timeout: 5s
         retries: 3
