@@ -1,12 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"log/slog"
 	"time"
 
-	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/config"
 )
 
 type Config struct {
@@ -16,8 +15,8 @@ type Config struct {
 	GRPC GRPCConfig   `yaml:"grpc"   env-prefix:"CALENDAR_GRPC_"`
 	Log  LoggerConfig `yaml:"logger" env-prefix:"CANELDAR_LOG_"`
 
-	EventStorageType EventStorageType `yaml:"event_storage"    env:"CALENDAR_EVENT_STORAGE" env-default:"memory"`
-	EventStoragePg   EventStoragePg   `yaml:"event_storage_pg"                                                   env-prefix:"CALENDAR_EVENT_STORAGE_PG_"` //nolint:lll
+	EventStorageType config.EventStorageType `yaml:"event_storage"    env:"CALENDAR_EVENT_STORAGE" env-default:"memory"`
+	EventStoragePg   config.EventStoragePg   `yaml:"event_storage_pg"                                                   env-prefix:"CALENDAR_EVENT_STORAGE_PG_"` //nolint:lll
 }
 
 type HTTPConfig struct {
@@ -36,58 +35,10 @@ type LoggerConfig struct {
 	Level slog.Level `yaml:"level" env:"LEVEL" env-default:"info"`
 }
 
-type EventStorageType string
-
-var (
-	EventStorageTypeMemory EventStorageType = "memory"
-	EventStorageTypePg     EventStorageType = "pg"
-)
-
-func (t *EventStorageType) UnmarshalText(s []byte) error {
-	switch string(s) {
-	case string(EventStorageTypeMemory):
-		*t = EventStorageTypeMemory
-	case string(EventStorageTypePg):
-		*t = EventStorageTypePg
-	default:
-		return fmt.Errorf("invalid event storage type '%s'", s)
-	}
-
-	return nil
-}
-
-func (t *EventStorageType) String() string {
-	return string(*t)
-}
-
-type EventStoragePg struct {
-	DataSource string `yaml:"data_source" env:"DATASOURCE"`
-}
-
-// ReadConfig пытается прочитать конфиг в yaml формате из файла и переменных окружения.
 func ReadConfig(path string) (Config, error) {
-	var cfg Config
-
-	err := cleanenv.ReadConfig(path, &cfg)
-	if err != nil {
-		return Config{}, err
-	}
-
-	return cfg, nil
+	return config.ReadConfig[Config](path)
 }
 
-// ParseConfig пытается прочитать конфиг в yaml формате из r и переменных окружения.
 func ParseConfig(r io.Reader) (Config, error) {
-	var cfg Config
-	err := cleanenv.ParseYAML(r, &cfg)
-	if err != nil {
-		return Config{}, err
-	}
-
-	err = cleanenv.ReadEnv(&cfg)
-	if err != nil {
-		return Config{}, err
-	}
-
-	return cfg, nil
+	return config.ParseConfig[Config](r)
 }

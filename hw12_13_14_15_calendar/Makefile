@@ -41,13 +41,30 @@ generate-proto: install-deps-protoc
 #
 
 .PHONY: build
-build: generate
+build: build-app-calendar build-app-scheduler build-app-sender
+	@# Help: build all apps
+
+
+.PHONY: build-app-calendar
+build-app-calendar: generate
 	@# Help: build calendar app $(CALENDAR_BIN)
 	go build -v -o $(CALENDAR_BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
 
 
+.PHONY: build-app-scheduler
+build-app-scheduler:
+	@# Help: build scheduler app $(SCHEDULER_BIN)
+	go build -v -o $(SCHEDULER_BIN) -ldflags "$(LDFLAGS)" ./cmd/scheduler
+
+
+.PHONY: build-app-sender
+build-app-sender:
+	@# Help: build sender app $(SENDER_BIN)
+	go build -v -o $(SENDER_BIN) -ldflags "$(LDFLAGS)" ./cmd/sender
+
+
 .PHONY: build-img-all
-build-img-all: build-img-pg
+build-img-all: build-img-pg build-img-amqp
 	@# Help: Build all docker images
 
 
@@ -58,6 +75,13 @@ build-img-pg:
 		-t $(DOCKER_IMG_PG) \
 		-f build/pg/Dockerfile build/pg
 
+
+.PHONY: build-img-amqp
+build-img-amqp:
+	@# Help: Build rabbitmq docker image $(DOCKER_IMG_AMQP)
+	docker build \
+		-t $(DOCKER_IMG_AMQP) \
+		-f build/rabbitmq/Dockerfile build/rabbitmq
 
 #
 # RUN
@@ -79,6 +103,15 @@ run-img-pg: build-img-pg
 		-e PG_PSWD=$(PG_PSWD) \
 		-p 5432:5432 \
 		$(DOCKER_IMG_PG)
+
+
+.PHONY: run-img-amqp
+run-img-amqp: build-img-amqp
+	@# Help: Run temp rabbitmq docker container from $(DOCKER_IMG_AMQP) image
+	docker run --rm \
+		-p 15672:15672 \
+		-p 5672:5672 \
+		$(DOCKER_IMG_AMQP)
 
 
 #
@@ -103,7 +136,7 @@ install-deps-lint:
 	@# Help: Install golangci linter
 	@(which golangci-lint 1>/dev/null 2>&1) && echo "golangci-lint is already installed" \
 		|| ( echo "install golangci-lint..." \
-				&& curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.57.2 \
+				&& curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.60.1 \
 				&& echo "done" \
 			)
 

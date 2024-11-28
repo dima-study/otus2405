@@ -11,6 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
+	storage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event"
 )
 
 type pgEvent struct {
@@ -28,7 +29,7 @@ type Storage struct {
 	DB *sqlx.DB
 }
 
-var _ model.Storage = (*Storage)(nil)
+var _ storage.Storage = (*Storage)(nil)
 
 func NewStorage(dataSource string) (*Storage, error) {
 	db, err := sqlx.Connect("pgx", dataSource)
@@ -102,7 +103,7 @@ WHERE owner_id = :owner_id
 		}
 
 		if n == 0 {
-			return model.ErrEventNotFound
+			return storage.ErrEventNotFound
 		}
 
 		return nil
@@ -133,7 +134,7 @@ WHERE owner_id=$1
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			err = model.ErrEventNotFound
+			err = storage.ErrEventNotFound
 		}
 
 		return model.Event{}, err
@@ -170,7 +171,7 @@ WHERE owner_id = $1
 		}
 
 		if n == 0 {
-			return model.ErrEventNotFound
+			return storage.ErrEventNotFound
 		}
 
 		return nil
@@ -203,6 +204,80 @@ WHERE owner_id = $1
 
 ORDER BY start_at`,
 		ownerID, from, to,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []model.Event
+	for rows.Next() {
+		var ev pgEvent
+		if err = rows.StructScan(&ev); err != nil {
+			return nil, err
+		}
+
+		event, err := toModel(ev)
+		if err != nil {
+			return nil, err
+		}
+
+		events = append(events, event)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return events, nil
+}
+
+func (s *Storage) PurgeOldEvents(ctx context.Context, olderThan time.Time) error {
+	return s.withTx(ctx, func(tx *sqlx.Tx) error {
+		_, err := tx.ExecContext(
+			ctx,
+			`
+DELETE
+
+FROM events
+
+WHERE upper(time)<$1`,
+			olderThan,
+		)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (s *Storage) QueryEventsToNotify(
+	ctx context.Context,
+	from time.Time,
+	to time.Time,
+) ([]model.Event, error) {
+	rows, err := s.DB.QueryxContext(
+		ctx,
+		`
+SELECT
+    id
+  , event_id
+  , owner_id
+  , lower(time) AS start_at
+  , upper(time) AS end_at
+  , title
+  , description
+  , notify_before
+
+FROM events
+
+WHERE notify_before>0
+  AND $1 <= lower(time) - notify_before * '1 day'::interval
+  AND lower(time)  - notify_before * '1 day'::interval < $2
+
+ORDER BY start_at`,
+		from, to,
 	)
 	if err != nil {
 		return nil, err
@@ -330,9 +405,9 @@ func handleModelError(err error) error {
 	errStr := err.Error()
 	switch {
 	case strings.Contains(errStr, "uniq_owner_event_id"):
-		return model.ErrEventAlreadyExists
+		return storage.ErrEventAlreadyExists
 	case strings.Contains(errStr, "no_time_overlap"):
-		return model.ErrTimeIsBusy
+		return storage.ErrTimeIsBusy
 	}
 
 	return err

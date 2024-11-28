@@ -14,6 +14,7 @@ import (
 
 	proto "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/api/proto/event/v1"
 	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
+	storage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event"
 )
 
 type Business interface {
@@ -49,9 +50,9 @@ func (a *App) handleError(ctx context.Context, err error, handle string, attrs .
 	case errors.Is(err, model.ErrEmptyTitle):
 	case errors.Is(err, model.ErrMaxTitleLen):
 	case errors.Is(err, model.ErrTimeEndBeforeStart):
-	case errors.Is(err, model.ErrTimeIsBusy):
-	case errors.Is(err, model.ErrEventAlreadyExists):
-	case errors.Is(err, model.ErrEventNotFound):
+	case errors.Is(err, storage.ErrTimeIsBusy):
+	case errors.Is(err, storage.ErrEventAlreadyExists):
+	case errors.Is(err, storage.ErrEventNotFound):
 	default:
 		a.logger.
 			With(append([]any{slog.String("handle", handle)}, attrs...)...).

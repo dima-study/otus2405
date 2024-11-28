@@ -18,6 +18,7 @@ import (
 	calendarBusiness "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/business/calendar"
 	"github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/grpc/auth"
 	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
+	modelStorage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event"
 	memoryStorage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event/memory"
 	pgStorage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event/pg"
 )
@@ -34,7 +35,7 @@ type APITestSuite struct {
 	suite.Suite
 
 	app     *App
-	storage model.Storage
+	storage calendarBusiness.EventStorage
 
 	ownerID  model.OwnerID
 	eventIDs []model.ID
@@ -43,7 +44,7 @@ type APITestSuite struct {
 }
 
 func (s *APITestSuite) SetupSuite() {
-	var storage model.Storage
+	var storage calendarBusiness.EventStorage
 
 	if dataSource != "" {
 		var err error
@@ -157,7 +158,7 @@ func (s *APITestSuite) Test_DeleteEvent() {
 
 			_, err = s.storage.FindEvent(ctx, s.ownerID, eventID)
 			s.Require().Error(err, "must have error")
-			s.Require().ErrorIs(err, model.ErrEventNotFound, "must have model.ErrEventNotFound error")
+			s.Require().ErrorIs(err, modelStorage.ErrEventNotFound, "must have model.ErrEventNotFound error")
 		}
 
 		for _, eventID := range s.eventIDs {

@@ -9,12 +9,29 @@ import (
 	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
 )
 
-type App struct {
-	logger  *slog.Logger
-	storage model.Storage
+type EventStorage interface {
+	// AddEvent добавляет событие в коллекцию.
+	AddEvent(ctx context.Context, event model.Event) error
+
+	// UpdateEvent обновляет событие в коллекции.
+	UpdateEvent(ctx context.Context, event model.Event) error
+
+	// FindEvent находит собитие в коллекции по ownerID и eventID.
+	FindEvent(ctx context.Context, ownerID model.OwnerID, eventID model.ID) (model.Event, error)
+
+	// DeleteEvent удаляет событие из коллекции по ownerID и eventID.
+	DeleteEvent(ctx context.Context, ownerID model.OwnerID, eventID model.ID) error
+
+	// QueryEvents находит все события в коллекции для ownerID, которые запланированы на указанный промежуток [from, to).
+	QueryEvents(ctx context.Context, ownerID model.OwnerID, from time.Time, to time.Time) ([]model.Event, error)
 }
 
-func NewApp(logger *slog.Logger, storage model.Storage) *App {
+type App struct {
+	logger  *slog.Logger
+	storage EventStorage
+}
+
+func NewApp(logger *slog.Logger, storage EventStorage) *App {
 	return &App{
 		logger:  logger,
 		storage: storage,
