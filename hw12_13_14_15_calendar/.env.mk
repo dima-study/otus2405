@@ -7,7 +7,14 @@ LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%d
 CALENDAR_BIN := "bin/calendar"
 CALENDAR_CONFIG := "configs/calendar.yaml"
 
+SCHEDULER_BIN := "bin/scheduler"
+SCHEDULER_CONFIG := "configs/scheduler.yaml"
+
+SENDER_BIN := "bin/sender"
+SENDER_CONFIG := "configs/sender.yaml"
+
 DOCKER_IMG_PG = "calendar-pg:$(VERSION)"
+DOCKER_IMG_AMQP = "calendar-amqp:$(VERSION)"
 DOCKER_IMG_APP := "calendar-app:$(VERSION)"
 
 PG_HOST := "127.0.0.1"

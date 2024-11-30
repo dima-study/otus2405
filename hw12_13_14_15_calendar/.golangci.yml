@@ -5,6 +5,8 @@ run:
     - !bench
 
 linters-settings:
+  dupl:
+    threshold: 200
   funlen:
     lines: 200
     statements: 80

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	model "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/model/event"
+	modelStorage "github.com/dima-study/otus2405/hw12_13_14_15_calendar/internal/storage/event"
 )
 
 type populateArgs struct {
@@ -32,11 +33,15 @@ func mkEvent(
 	title model.Title,
 	startAt time.Time,
 	endAt time.Time,
+	notifyBefore uint,
 ) model.Event {
 	t.Helper()
 
 	event, err := model.NewEvent(eventID, ownerID, title, startAt, endAt)
 	require.NoErrorf(t, err, "must not have error while create an event %s", title)
+
+	event.NotifyBefore = notifyBefore
+
 	return event
 }
 
@@ -63,32 +68,32 @@ func populate(t *testing.T) (*Storage, populateArgs) {
 	}{
 		{
 			name:  "event#1 user#1",
-			event: mkEvent(t, eventIDs[0], ownerIDs[0], "1", times[1][0], times[1][1]),
+			event: mkEvent(t, eventIDs[0], ownerIDs[0], "1", times[1][0], times[1][1], 5),
 			err:   nil,
 		},
 		{
 			name:  "event#1 user#1 duplicate",
-			event: mkEvent(t, eventIDs[0], ownerIDs[0], "1", times[1][0], times[1][1]),
-			err:   model.ErrEventAlreadyExists,
+			event: mkEvent(t, eventIDs[0], ownerIDs[0], "1", times[1][0], times[1][1], 5),
+			err:   modelStorage.ErrEventAlreadyExists,
 		},
 		{
 			name:  "event#2 user#1 time overlap",
-			event: mkEvent(t, eventIDs[1], ownerIDs[0], "2", times[1][0], times[1][1]),
-			err:   model.ErrTimeIsBusy,
+			event: mkEvent(t, eventIDs[1], ownerIDs[0], "2", times[1][0], times[1][1], 5),
+			err:   modelStorage.ErrTimeIsBusy,
 		},
 		{
 			name:  "event#2 user#1",
-			event: mkEvent(t, eventIDs[1], ownerIDs[0], "2", times[0][0], times[0][1]),
+			event: mkEvent(t, eventIDs[1], ownerIDs[0], "2", times[0][0], times[0][1], 0),
 			err:   nil,
 		},
 		{
 			name:  "event#1 user#3",
-			event: mkEvent(t, eventIDs[0], ownerIDs[2], "1", times[1][0], times[1][1]),
+			event: mkEvent(t, eventIDs[0], ownerIDs[2], "1", times[1][0], times[1][1], 5),
 			err:   nil,
 		},
 		{
 			name:  "event#2 user#3",
-			event: mkEvent(t, eventIDs[1], ownerIDs[2], "2", times[0][0], times[0][1]),
+			event: mkEvent(t, eventIDs[1], ownerIDs[2], "2", times[0][0], times[0][1], 0),
 			err:   nil,
 		},
 	}
@@ -155,12 +160,12 @@ func TestMemory_FindEvent(t *testing.T) {
 		{
 			name: "user#1 event#3",
 			args: args{pargs.ownerIDs[0], pargs.eventIDs[2]},
-			err:  model.ErrEventNotFound,
+			err:  modelStorage.ErrEventNotFound,
 		},
 		{
 			name: "user#2 event#1",
 			args: args{pargs.ownerIDs[1], pargs.eventIDs[0]},
-			err:  model.ErrEventNotFound,
+			err:  modelStorage.ErrEventNotFound,
 		},
 		{
 			name: "user#3 event#1",
@@ -201,7 +206,7 @@ func TestMemory_UpdateEvent(t *testing.T) {
 		events := storage.userMap[pargs.ownerIDs[0]]
 		require.Len(t, events, 2, "must have 2 events for user #1")
 
-		event := mkEvent(t, pargs.eventIDs[1], pargs.ownerIDs[0], "2", pargs.times[2][0], pargs.times[2][1])
+		event := mkEvent(t, pargs.eventIDs[1], pargs.ownerIDs[0], "2", pargs.times[2][0], pargs.times[2][1], 0)
 
 		err := storage.UpdateEvent(context.Background(), event)
 		require.NoError(t, err, "must not have error")
@@ -213,19 +218,19 @@ func TestMemory_UpdateEvent(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		event := mkEvent(t, pargs.eventIDs[2], pargs.ownerIDs[0], "2", pargs.times[2][0], pargs.times[2][1])
+		event := mkEvent(t, pargs.eventIDs[2], pargs.ownerIDs[0], "2", pargs.times[2][0], pargs.times[2][1], 0)
 
 		err := storage.UpdateEvent(context.Background(), event)
 		require.Error(t, err, "must have error")
-		require.ErrorIs(t, err, model.ErrEventNotFound, "must be ErrEventNotFound error")
+		require.ErrorIs(t, err, modelStorage.ErrEventNotFound, "must be ErrEventNotFound error")
 	})
 
 	t.Run("time is busy", func(t *testing.T) {
-		event := mkEvent(t, pargs.eventIDs[1], pargs.ownerIDs[0], "2", pargs.times[1][0], pargs.times[1][1])
+		event := mkEvent(t, pargs.eventIDs[1], pargs.ownerIDs[0], "2", pargs.times[1][0], pargs.times[1][1], 0)
 
 		err := storage.UpdateEvent(context.Background(), event)
 		require.Error(t, err, "must have error")
-		require.ErrorIs(t, err, model.ErrTimeIsBusy, "must be ErrTimeIsBusy error")
+		require.ErrorIs(t, err, modelStorage.ErrTimeIsBusy, "must be ErrTimeIsBusy error")
 	})
 
 	events := storage.userMap[pargs.ownerIDs[0]]
@@ -241,13 +246,13 @@ func TestMemory_DeleteEvent(t *testing.T) {
 	t.Run("no event for unknown user", func(t *testing.T) {
 		err := storage.DeleteEvent(context.Background(), model.NewOwnerID(), model.NewID())
 		require.Error(t, err, "must have error")
-		require.ErrorIs(t, err, model.ErrEventNotFound, "must be ErrEventNotFound error")
+		require.ErrorIs(t, err, modelStorage.ErrEventNotFound, "must be ErrEventNotFound error")
 	})
 
 	t.Run("no event for user", func(t *testing.T) {
 		err := storage.DeleteEvent(context.Background(), pargs.ownerIDs[0], model.NewID())
 		require.Error(t, err, "must have error")
-		require.ErrorIs(t, err, model.ErrEventNotFound, "must be ErrEventNotFound error")
+		require.ErrorIs(t, err, modelStorage.ErrEventNotFound, "must be ErrEventNotFound error")
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -435,9 +440,67 @@ func Test_findNewEventIndex(t *testing.T) {
 					mkTitle(t, tt.name),
 					tt.startAt,
 					tt.endAt,
+					0,
 				),
 			)
 			require.Equal(t, tt.pos, i, "proper value")
+		})
+	}
+}
+
+func Test_PurgeOldEvents(t *testing.T) {
+	storage, pargs := populate(t)
+
+	err := storage.PurgeOldEvents(
+		context.Background(),
+		pargs.times[1][0].Truncate(time.Second),
+	)
+	require.NoError(t, err, "must not have arror")
+
+	count := 0
+	for _, userEvents := range storage.userMap {
+		count += len(userEvents)
+	}
+	require.Equal(t, 2, count, "must be proper value")
+}
+
+func TestMemory_QueryEventsToNotify(t *testing.T) {
+	storage, pargs := populate(t)
+
+	tests := []struct {
+		name     string
+		from     time.Time
+		to       time.Time
+		evendIDs []model.ID
+	}{
+		{
+			name: "need notify",
+			from: pargs.times[1][0].Truncate(time.Second).Add(-5 * 24 * time.Hour),
+			to:   pargs.times[1][0].Truncate(time.Second).Add(-5*24*time.Hour + time.Hour),
+			evendIDs: []model.ID{
+				pargs.eventIDs[0],
+				pargs.eventIDs[0],
+			},
+		},
+		{
+			name:     "no need notify",
+			from:     pargs.times[0][0].Truncate(time.Second).Add(-5 * 24 * time.Hour),
+			to:       pargs.times[0][0].Truncate(time.Second).Add(-5*24*time.Hour + time.Hour),
+			evendIDs: []model.ID{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			events, err := storage.QueryEventsToNotify(context.Background(), tt.from, tt.to)
+			require.NoError(t, err, "must not have arror")
+
+			eventIDs := []model.ID{}
+			for _, e := range events {
+				eventIDs = append(eventIDs, e.EventID())
+			}
+
+			require.Equal(t, tt.evendIDs, eventIDs, "proper result")
 		})
 	}
 }

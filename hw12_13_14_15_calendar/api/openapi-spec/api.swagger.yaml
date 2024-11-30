@@ -1,0 +1,268 @@
+swagger: "2.0"
+info:
+  title: event/v1/date.proto
+  version: version not set
+tags:
+  - name: EventService
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /v1/events:
+    post:
+      operationId: EventService_CreateEvent
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/CreateEventResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/Status'
+      parameters:
+        - name: event
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Event'
+      tags:
+        - EventService
+  /v1/events/query/day/{day.year}/{day.month}/{day.day}:
+    get:
+      operationId: EventService_GetDayEvents
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/GetDayEventsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/Status'
+      parameters:
+        - name: day.year
+          in: path
+          required: true
+          type: integer
+          format: int32
+        - name: day.month
+          in: path
+          required: true
+          type: integer
+          format: int32
+        - name: day.day
+          in: path
+          required: true
+          type: integer
+          format: int32
+      tags:
+        - EventService
+  /v1/events/query/month/{month.year}/{month.month}:
+    get:
+      operationId: EventService_GetMonthEvents
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/GetMonthEventsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/Status'
+      parameters:
+        - name: month.year
+          in: path
+          required: true
+          type: integer
+          format: int32
+        - name: month.month
+          in: path
+          required: true
+          type: integer
+          format: int32
+      tags:
+        - EventService
+  /v1/events/query/week/{start_day.year}/{start_day.month}/{start_day.day}:
+    get:
+      operationId: EventService_GetWeekEvents
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/GetWeekEventsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/Status'
+      parameters:
+        - name: start_day.year
+          in: path
+          required: true
+          type: integer
+          format: int32
+        - name: start_day.month
+          in: path
+          required: true
+          type: integer
+          format: int32
+        - name: start_day.day
+          in: path
+          required: true
+          type: integer
+          format: int32
+      tags:
+        - EventService
+  /v1/events/{event.event_id}:
+    put:
+      operationId: EventService_UpdateEvent
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/UpdateEventResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/Status'
+      parameters:
+        - name: event.event_id
+          in: path
+          required: true
+          type: string
+        - name: event
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              start_at:
+                type: string
+                format: date-time
+              end_at:
+                type: string
+                format: date-time
+              title:
+                type: string
+              description:
+                type: string
+              notify_before:
+                type: integer
+                format: int64
+      tags:
+        - EventService
+  /v1/events/{event_id}:
+    delete:
+      operationId: EventService_DeleteEvent
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/DeleteEventResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/Status'
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          type: string
+      tags:
+        - EventService
+definitions:
+  Any:
+    type: object
+    properties:
+      '@type':
+        type: string
+    additionalProperties: {}
+  CreateEventResponse:
+    type: object
+    properties:
+      event:
+        $ref: '#/definitions/Event'
+  Date:
+    type: object
+    properties:
+      year:
+        type: integer
+        format: int32
+      month:
+        type: integer
+        format: int32
+      day:
+        type: integer
+        format: int32
+  DeleteEventResponse:
+    type: object
+  Event:
+    type: object
+    properties:
+      event_id:
+        type: string
+      start_at:
+        type: string
+        format: date-time
+      end_at:
+        type: string
+        format: date-time
+      title:
+        type: string
+      description:
+        type: string
+      notify_before:
+        type: integer
+        format: int64
+  GetDayEventsResponse:
+    type: object
+    properties:
+      events:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/Event'
+  GetMonthEventsResponse:
+    type: object
+    properties:
+      events:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/Event'
+  GetWeekEventsResponse:
+    type: object
+    properties:
+      events:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/Event'
+  Month:
+    type: object
+    properties:
+      year:
+        type: integer
+        format: int32
+      month:
+        type: integer
+        format: int32
+  Status:
+    type: object
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+      details:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/Any'
+  UpdateEventResponse:
+    type: object
+    properties:
+      event:
+        $ref: '#/definitions/Event'

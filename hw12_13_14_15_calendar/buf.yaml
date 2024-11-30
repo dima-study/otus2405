@@ -1,0 +1,14 @@
+version: v2
+modules:
+  - path: api/proto
+deps:
+  - buf.build/googleapis/googleapis
+  - buf.build/grpc/grpc
+  - buf.build/grpc-ecosystem/grpc-gateway
+  - buf.build/alta/protopatch
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE
