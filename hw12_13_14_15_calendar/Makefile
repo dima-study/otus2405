@@ -28,6 +28,7 @@ generate-proto: install-deps-protoc
 	protoc \
 		-Iapi/vendor/proto/alta/protopatch/ \
 		-Iapi/vendor/proto/googleapis/googleapis \
+		-Iapi/vendor/proto/grpc-ecosystem/grpc-gateway \
 		-Iapi/proto \
 		--go-patch_out=plugin=go,paths=source_relative:internal/api/proto \
 		--go-patch_out=plugin=go-grpc,paths=source_relative,require_unimplemented_servers=true:internal/api/proto \
