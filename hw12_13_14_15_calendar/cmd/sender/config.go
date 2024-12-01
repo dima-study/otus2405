@@ -15,7 +15,7 @@ type Config struct {
 	// AMQPConnect - строка подключения к брокеру RabbitMQ.
 	AMQPConnect string `yaml:"amqp_connect" env:"CALENDAR_AMQP_CONNECT" env-default:"amqp://guest:guest@localhost:5672/"`
 
-	Log LoggerConfig `yaml:"logger" env-prefix:"CANELDAR_LOG_"`
+	Log LoggerConfig `yaml:"logger" env-prefix:"CALENDAR_LOG_"`
 }
 
 type LoggerConfig struct {

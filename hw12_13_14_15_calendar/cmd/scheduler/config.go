@@ -22,7 +22,7 @@ type Config struct {
 	// По умолчанию - удаляем события старше 365 дней.
 	PurgeOlderThan time.Duration `yaml:"purge_older_than" env:"CALENDAR_PURGE_PERIOD" env-default:"8760h"` // 365 * 24
 
-	Log LoggerConfig `yaml:"logger" env-prefix:"CANELDAR_LOG_"`
+	Log LoggerConfig `yaml:"logger" env-prefix:"CALENDAR_LOG_"`
 
 	EventStorageType config.EventStorageType `yaml:"event_storage"    env:"CALENDAR_EVENT_STORAGE" env-default:"memory"`
 	EventStoragePg   config.EventStoragePg   `yaml:"event_storage_pg"                                                   env-prefix:"CALENDAR_EVENT_STORAGE_PG_"` //nolint:lll
