@@ -1,9 +1,10 @@
 swagger: "2.0"
 info:
-  title: event/v1/date.proto
+  title: event/v1/event_service.proto
   version: version not set
 tags:
   - name: EventService
+basePath: /api
 consumes:
   - application/json
 produces:
