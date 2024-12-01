@@ -112,6 +112,16 @@ build-img-amqp:
 # RUN
 #
 
+.PHONY: up
+up:
+	@# Help: Run up-n-run docker with calendar project
+	PG_HOST=pg docker-compose -f build/docker-compose.yaml up
+
+.PHONY: down
+down:
+	@# Help: Stop docker with calendar project
+	docker-compose -f build/docker-compose.yaml down
+
 .PHONY: run
 run: build
 	@# Help: Run calendar app $(CALENDAR_BIN) with default config $(CALENDAR_CONFIG)
@@ -214,6 +224,10 @@ test:
 	@# Help: Run tests
 	go test -race ./internal/... ./cmd/...
 
+.PHONY: integration-tests
+integration-tests:
+	@# Help: Run tests
+	PG_HOST=pg ./tests/run.sh
 
 .PHONY: lint
 lint: install-deps-lint

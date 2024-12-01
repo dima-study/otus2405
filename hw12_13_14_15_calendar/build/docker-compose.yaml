@@ -17,6 +17,27 @@ services:
         - "8081:8081"
         - "50051:50051"
 
+    app-calendar-integration-tests:
+      build:
+        context: ../
+        dockerfile: ./build/app-calendar-integration-tests/Dockerfile
+      depends_on:
+        pg_migration:
+          condition: service_completed_successfully
+        pg:
+          condition: service_healthy
+        calendar:
+          condition: service_started
+        scheduler:
+          condition: service_started
+        sender:
+          condition: service_started
+      env_file:
+        - path: ./default.env
+          required: true
+      profiles:
+        - integration-tests
+
     scheduler:
       build:
         context: ../
