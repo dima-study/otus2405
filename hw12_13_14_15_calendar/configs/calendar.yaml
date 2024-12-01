@@ -6,6 +6,10 @@ http:
   read_timeout: 5s
   write_timeout: 15s
 
+grpc:
+  port: "50051"
+  host: localhost
+
 logger:
   level: info
 

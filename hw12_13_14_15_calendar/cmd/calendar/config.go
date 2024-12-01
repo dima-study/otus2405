@@ -13,7 +13,7 @@ type Config struct {
 
 	HTTP HTTPConfig   `yaml:"http"   env-prefix:"CALENDAR_HTTP_"`
 	GRPC GRPCConfig   `yaml:"grpc"   env-prefix:"CALENDAR_GRPC_"`
-	Log  LoggerConfig `yaml:"logger" env-prefix:"CANELDAR_LOG_"`
+	Log  LoggerConfig `yaml:"logger" env-prefix:"CALENDAR_LOG_"`
 
 	EventStorageType config.EventStorageType `yaml:"event_storage"    env:"CALENDAR_EVENT_STORAGE" env-default:"memory"`
 	EventStoragePg   config.EventStoragePg   `yaml:"event_storage_pg"                                                   env-prefix:"CALENDAR_EVENT_STORAGE_PG_"` //nolint:lll

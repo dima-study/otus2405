@@ -29,6 +29,9 @@ type App struct {
 	// NotifyInterval как часто уведомлять.
 	NotifyInterval time.Duration
 
+	// PurgeInterval как часто удалять.
+	PurgeInterval time.Duration
+
 	logger   *slog.Logger
 	notifier Notifier
 	storage  EventStorage
@@ -43,6 +46,7 @@ func NewApp(logger *slog.Logger, notifier Notifier, storage EventStorage) *App {
 	return &App{
 		PurgeOlderThan: time.Hour * 24 * 365, // по умолчанию 365 дней
 		NotifyInterval: time.Minute,          // по умолчанию раз в минуту
+		PurgeInterval:  time.Hour,            // по умолчанию раз в час
 
 		logger:   logger,
 		notifier: notifier,
@@ -82,7 +86,7 @@ func (a *App) Schedule(ctx context.Context) {
 	go a.scheduleNotify(a.done, a.NotifyInterval)
 
 	// задачи очистки
-	go a.schedulePurgeEvents(a.done, a.PurgeOlderThan)
+	go a.schedulePurgeEvents(a.done, a.PurgeInterval, a.PurgeOlderThan)
 }
 
 // Wait ждёт завершения работы планировщика.
@@ -164,11 +168,9 @@ func (a *App) scheduleNotify(done chan struct{}, period time.Duration) {
 	}
 }
 
-const purgePeriod = time.Hour
-
 // schedulePurgeEvents выполняет задачу удаления старых события.
 // События удаляются сразу после запуска и периодически раз в час.
-func (a *App) schedulePurgeEvents(done chan struct{}, olderThan time.Duration) {
+func (a *App) schedulePurgeEvents(done chan struct{}, period time.Duration, olderThan time.Duration) {
 	defer a.wg.Done()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -188,7 +190,7 @@ func (a *App) schedulePurgeEvents(done chan struct{}, olderThan time.Duration) {
 	// Удаляем сразу при запуске и периодически
 	purge()
 
-	t := time.NewTicker(purgePeriod)
+	t := time.NewTicker(period)
 	defer t.Stop()
 
 	for {

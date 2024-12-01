@@ -6,12 +6,18 @@ option go_package = "github.com/dima-study/otus2405/hw12_13_14_15_calendar/inter
 
 import "patch/go.proto";
 import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
 import "event/v1/event.proto";
 import "event/v1/date.proto";
 
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+   base_path: "/api";
+};
+
 service EventService {
   rpc CreateEvent(CreateEventRequest) returns (CreateEventResponse) {
+
     option (google.api.http) = {
       post: "/v1/events";
       body: "event";

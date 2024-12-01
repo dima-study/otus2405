@@ -63,20 +63,29 @@ func (a *App) Send(ctx context.Context) bool {
 					return
 				}
 
+				a.logger.DebugContext(ctx, "got data from notification queue")
+
 				notification, err := msg.Model()
 				if err != nil {
+					msg.Done()
 					a.logger.ErrorContext(ctx, "can't convert message to model", slog.String("error", err.Error()))
 					continue
 				}
 
 				str := fmt.Sprintf(
-					"send notification for ownerID=%s eventID=%s: %s on %s",
+					"send notification for ownerID=%s eventID=%s: %s on %s\n",
 					notification.OwnerID,
 					notification.EventID,
 					notification.Title,
 					notification.Date.String(),
 				)
-				a.w.Write([]byte(str))
+
+				_, err = a.w.Write([]byte(str))
+				if err != nil {
+					a.logger.ErrorContext(ctx, "can't write notification", slog.String("error", err.Error()))
+				}
+
+				msg.Done()
 			}
 		}
 	}()

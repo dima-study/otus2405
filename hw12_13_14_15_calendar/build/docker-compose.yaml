@@ -1,0 +1,105 @@
+name: calendar
+
+services:
+    calendar:
+      build:
+        context: ../
+        dockerfile: ./build/app-calendar/Dockerfile
+      depends_on:
+        pg_migration:
+          condition: service_completed_successfully
+        pg:
+          condition: service_healthy
+      env_file:
+        - path: ./default.env
+          required: true
+      ports:
+        - "8081:8081"
+        - "50051:50051"
+
+    app-calendar-integration-tests:
+      build:
+        context: ../
+        dockerfile: ./build/app-calendar-integration-tests/Dockerfile
+      depends_on:
+        pg_migration:
+          condition: service_completed_successfully
+        pg:
+          condition: service_healthy
+        calendar:
+          condition: service_started
+        scheduler:
+          condition: service_started
+        sender:
+          condition: service_started
+      env_file:
+        - path: ./default.env
+          required: true
+      profiles:
+        - integration-tests
+
+    scheduler:
+      build:
+        context: ../
+        dockerfile: ./build/app-scheduler/Dockerfile
+      env_file:
+        - path: ./default.env
+          required: true
+      depends_on:
+        pg_migration:
+          condition: service_completed_successfully
+        pg:
+          condition: service_healthy
+        amqp:
+          condition: service_healthy
+
+    sender:
+      build:
+        context: ../
+        dockerfile: ./build/app-sender/Dockerfile
+      env_file:
+        - path: ./default.env
+          required: true
+      depends_on:
+        amqp:
+          condition: service_healthy
+
+    pg_migration:
+      build:
+        context: ../
+        dockerfile: ./build/app-migration/Dockerfile
+      env_file:
+        - path: ./default.env
+          required: true
+      depends_on:
+        pg:
+          condition: service_healthy
+
+    pg:
+      build:
+        context: ./pg
+        dockerfile: ./Dockerfile
+      user: postgres
+      env_file:
+        - path: ./default.env
+          required: true
+      environment:
+          POSTGRES_HOST_AUTH_METHOD: trust
+      ports:
+        - "5432:5432"
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready", "-u", "${PG_USER}","-d", "${PG_DB}"]
+        interval: 10s
+        timeout: 5s
+        retries: 3
+
+    amqp:
+      build: ./rabbitmq
+      ports:
+        - "5672:5672"
+        - "15672:15672"
+      healthcheck:
+        test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+        interval: 10s
+        timeout: 5s
+        retries: 3

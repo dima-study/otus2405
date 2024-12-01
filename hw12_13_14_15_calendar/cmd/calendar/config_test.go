@@ -24,7 +24,7 @@ func unsetEnv() {
 	os.Unsetenv("CALENDAR_GRPC_PORT")
 	os.Unsetenv("CALENDAR_GRPC_HOST")
 
-	os.Unsetenv("CANELDAR_LOG_LEVEL")
+	os.Unsetenv("CALENDAR_LOG_LEVEL")
 
 	os.Unsetenv("CALENDAR_EVENT_STORAGE")
 	os.Unsetenv("CALENDAR_EVENT_STORAGE_PG_DATASOURCE")
@@ -114,7 +114,7 @@ func Test_ParseConfig(t *testing.T) {
 				os.Setenv("CALENDAR_GRPC_HOST", "some.grpc.host")
 				os.Setenv("CALENDAR_GRPC_PORT", "12345")
 
-				os.Setenv("CANELDAR_LOG_LEVEL", "error")
+				os.Setenv("CALENDAR_LOG_LEVEL", "error")
 
 				os.Setenv("CALENDAR_EVENT_STORAGE", "pg")
 				os.Setenv("CALENDAR_EVENT_STORAGE_PG_DATASOURCE", "pg://data?source")
@@ -212,7 +212,7 @@ func Test_ParseConfigError(t *testing.T) {
 			name: "invalid log level env",
 			cfg:  `default: true`,
 			init: func() {
-				os.Setenv("CANELDAR_LOG_LEVEL", "failed")
+				os.Setenv("CALENDAR_LOG_LEVEL", "failed")
 			},
 			wantError: true,
 		},

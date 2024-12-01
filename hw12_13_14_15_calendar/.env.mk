@@ -15,9 +15,11 @@ SENDER_CONFIG := "configs/sender.yaml"
 
 DOCKER_IMG_PG = "calendar-pg:$(VERSION)"
 DOCKER_IMG_AMQP = "calendar-amqp:$(VERSION)"
-DOCKER_IMG_APP := "calendar-app:$(VERSION)"
+DOCKER_IMG_CALENDAR := "calendar-calendar:$(VERSION)"
+DOCKER_IMG_SCHEDULER := "calendar-scheduler:$(VERSION)"
+DOCKER_IMG_SENDER := "calendar-sender:$(VERSION)"
 
-PG_HOST := "127.0.0.1"
-PG_USER := "calendar"
-PG_DB := "calendar"
-PG_PSWD := "calendar"
+PG_HOST = 127.0.0.1
+PG_USER = calendar
+PG_DB = calendar
+PG_PSWD = calendar
